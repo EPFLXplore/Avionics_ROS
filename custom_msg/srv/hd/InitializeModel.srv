@@ -1,0 +1,6 @@
+# Request
+string model_path  # Input: Path to the model file to initialize
+---
+# Response
+bool success  # Output: Success status of the model initialization
+string message  # Output: Message indicating status or errors

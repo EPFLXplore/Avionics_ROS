@@ -83,32 +83,4 @@ uint8_t MuxPublisher<MessageT>::selected_bus(bool node_state_bus0, bool node_sta
         return NOBUS;
 }
 
-template class MuxPublisher<custom_msg::msg::FourInOne>;
-template class MuxPublisher<custom_msg::msg::NPK>;
-template class MuxPublisher<custom_msg::msg::Voltage>;
-template class MuxPublisher<custom_msg::msg::MassArray>;
-template class MuxPublisher<custom_msg::msg::Imu>;
-template class MuxPublisher<custom_msg::msg::Mag>;
-template class MuxPublisher<custom_msg::msg::AngleArray>;
-template class MuxPublisher<custom_msg::msg::SpectroResponse>;
-template class MuxPublisher<custom_msg::msg::LaserResponse>;
-template class MuxPublisher<custom_msg::msg::ServoResponse>;
 template class MuxPublisher<custom_msg::msg::LEDResponse>;
-
-template class MuxPublisher<custom_msg::msg::MassConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::MassConfigResponse>;
-
-template class MuxPublisher<custom_msg::msg::PotConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::PotConfigResponse>;
-
-template class MuxPublisher<custom_msg::msg::ServoConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::ServoConfigResponse>;
-
-template class MuxPublisher<custom_msg::msg::AccelConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::AccelConfigResponse>;
-
-template class MuxPublisher<custom_msg::msg::GyroConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::GyroConfigResponse>;
-
-template class MuxPublisher<custom_msg::msg::MagConfigRequestMCU>;
-template class MuxPublisher<custom_msg::msg::MagConfigResponse>;

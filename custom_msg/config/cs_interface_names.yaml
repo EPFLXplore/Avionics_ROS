@@ -1,0 +1,13 @@
+/**:
+  ros__parameters:
+    cs_pubsub_hd_gamepad: /CS/GamepadCmdsHandlingDevice
+    cs_pubsub_nav_gamepad: /CS/NAV_gamepad
+    cs_action_nav_reachgoal: /CS/GamepadCmdsNavigation
+
+    cs_hd_action_manipulation: /CS/HandlingDeviceManipulation
+    cs_action_nav_goal: /CS/NavigationReachGoal
+    cs_action_drill: /CS/DrillTerrain
+
+    cs_service_change_subsystem: /CS/ChangeModeSystem
+    cs_change_mode_camera: /CS/ChangeModeCamera
+    cs_change_mode_camera_HD: /CS/ChangeModeHDCamera

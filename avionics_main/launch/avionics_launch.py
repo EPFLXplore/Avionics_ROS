@@ -66,70 +66,70 @@ def generate_launch_description():
     )
 
     # Launch the mux node with parameters
-    node_config = Node(
-        package=config_package_name,
-        executable=config_executable_name,
-        namespace=ns,
-        parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
-        output='screen',
-        arguments=['--ros-args',
-            '--log-level', logger]
-    )
-    ld.add_action(node_config)
+    # node_config = Node(
+    #     package=config_package_name,
+    #     executable=config_executable_name,
+    #     namespace=ns,
+    #     parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
+    #     output='screen',
+    #     arguments=['--ros-args',
+    #         '--log-level', logger]
+    # )
+    # ld.add_action(node_config)
 
     # # Define the package and executable names
-    # package_name = 'roco-ros-interface'
-    # executable_name = 'roco_interface'
+    package_name = 'RoCo'
+    executable_name = 'RoCo'
 
-    # # Iterate through the namespaces
-    # for bus in [bus0_name, bus1_name]:
+    # Iterate through the namespaces
+    for bus in [bus0_name, bus1_name]:
 
-    #     # Launch the node for the namespace with parameters
-    #     node = Node(
-    #         package=package_name,
-    #         executable=executable_name,
-    #         namespace=ns + "/" + bus,
-    #         parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
-    #         output='screen',
-    #         arguments=['--ros-args',
-    #             '--log-level', logger,
-    #             '--param', 'bus:=' + bus,
-    #             '--param', 'topic_prefix:=' + bus]
-    #     )
-    #     ld.add_action(node)
-
-    # Define the package and executable names for the mux node
-    mux_package_name = 'avionics_mux'
-    mux_executable_name = 'avionics_mux'
-
-    # Launch the mux node with parameters
-    node_mux = Node(
-        package=mux_package_name,
-        executable=mux_executable_name,
-        namespace=ns,
+    # Launch the node for the namespace with parameters
+    can_node = Node(
+        package=package_name,
+        executable=executable_name,
+        namespace=ns + "/" + bus,
         parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
         output='screen',
         arguments=['--ros-args',
             '--log-level', logger,
-            '--param', 'bus0:=' + bus0_name,
-            '--param', 'bus1:=' + bus1_name]
+            '--param', 'bus:=' + bus,
+            '--param', 'topic_prefix:=' + bus]
     )
-    ld.add_action(node_mux)
+    ld.add_action(can_node)
 
-    # Define the package and executable names for the converter node
-    converter_package_name = 'avionics_converter'
-    converter_executable_name = 'avionics_converter'
+    # # Define the package and executable names for the mux node
+    # mux_package_name = 'avionics_mux'
+    # mux_executable_name = 'avionics_mux'
 
-    # Launch the mux node with parameters
-    node_converter = Node(
-        package=converter_package_name,
-        executable=converter_executable_name,
-        namespace=ns,
-        parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
-        output='screen',
-        arguments=['--ros-args',
-            '--log-level', logger]
-    )
-    ld.add_action(node_converter)
+    # # Launch the mux node with parameters
+    # node_mux = Node(
+    #     package=mux_package_name,
+    #     executable=mux_executable_name,
+    #     namespace=ns,
+    #     parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
+    #     output='screen',
+    #     arguments=['--ros-args',
+    #         '--log-level', logger,
+    #         '--param', 'bus0:=' + bus0_name,
+    #         '--param', 'bus1:=' + bus1_name]
+    # )
+    # ld.add_action(node_mux)
+
+    # # Define the package and executable names for the converter node
+    # converter_package_name = 'avionics_converter'
+    # converter_executable_name = 'avionics_converter'
+
+    # # Launch the mux node with parameters
+    # node_converter = Node(
+    #     package=converter_package_name,
+    #     executable=converter_executable_name,
+    #     namespace=ns,
+    #     parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
+    #     output='screen',
+    #     arguments=['--ros-args',
+    #         '--log-level', logger]
+    # )
+    # ld.add_action(node_converter)
 
     return ld

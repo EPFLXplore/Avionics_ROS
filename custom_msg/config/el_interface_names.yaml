@@ -1,0 +1,105 @@
+/**:
+  ros__parameters:
+
+    # Pedro here:
+
+    # Just some comments about the topics:
+      # There are a lot of topics that are not being used but are still implemented in the code.
+      # The ones that are not used are commented out in the general list.
+      # There are a lot of topics that are for calibration and configuration.
+
+    # I have created some selection for the CS to implement:
+      # the esential ones implemented in Poland 2024. 
+      # I have left the ones used but not sure it works as I can't find the parameter reference on the Broco code:
+      # p.ex: "elec_voltmeter_pubsub"
+
+    # Parameter not found:
+
+    # elec_voltmeter_pubsub: /EL/voltage 
+    # elec_container_mass: /EL/container/mass
+    # elec_fourinone_sensor: /EL/four_in_one
+    # elec_drill_mass: /El/drill/mass
+    # elec_imu_pubsub: /EL/Imu
+
+    # These are the important for CS with the references found in Broco:
+
+    # FOUR_IN_ONE_TOPIC:    "/EL/four_in_one"
+    # VOLTAGE_TOPIC:        "/EL/voltage"
+    # DRILL_MASS_TOPIC:     "/EL/drill/mass"
+    # CONTAINER_MASS_TOPIC: "/EL/container/mass"
+    # IMU_TOPIC:            "/EL/imu_data" # custom_msg/msg/Imu.msg
+    # MAG_TOPIC:            "/EL/mag_data" => C'EST MAG.MSG?
+    # POTENTIOMETER_TOPIC:  "/EL/potentiometer" => QUOI COMME MESSAGE?
+    # SERVO_TOPIC:          "/EL/servo_response"
+    # SERVO_REQ_TOPIC:      "/EL/servo_req"
+    # LED_COM_TOPIC:        "/EL/LedCommands"
+    # DUST_TOPIC:           "/EL/DustSensor"
+
+
+
+
+
+    # GENERAL LIST OF EVERY ONE IN THE CODE RIGHT NOW ====================
+
+    # Publishers ============================
+    FOUR_IN_ONE_TOPIC:    "/EL/four_in_one"
+    #NPK_TOPIC:            "/EL/npk" #still in code but not used
+    VOLTAGE_TOPIC:        "/EL/voltage"
+    DRILL_MASS_TOPIC:     "/EL/drill/mass"
+    CONTAINER_MASS_TOPIC: "/EL/container/mass"
+    IMU_TOPIC:            "/EL/imu_data" # custom_msg/msg/Imu.msg
+    #IMU_NAV_TOPIC:        "/EL/imu" # sensor_msgs/Imu.msg WHAT IS IT?
+    MAG_TOPIC:            "/EL/mag_data"
+    MAG_CAL_TOPIC:        "/EL/mag" # calibration
+    MAG_RAW_TOPIC:        "/EL/mag_raw" # data 
+    POTENTIOMETER_TOPIC:  "/EL/potentiometer" 
+    #SPECTRO_TOPIC:        "/EL/spectro_response" #still in code but not used
+    #LASER_TOPIC:          "/EL/laser_response" #still in code but not used
+    SERVO_TOPIC:          "/EL/servo_response"
+    #LED_TOPIC:            "/EL/led_response" #still in code but not used
+    NODE_STATE_TOPIC:     "/EL/node_state"
+
+    # Config
+    MASS_CONFIG_REQ_MCU_TOPIC:  "/EL/mass_config_mcu_req"
+    MASS_CONFIG_TOPIC:          "/EL/mass_config_response"
+
+    POT_CONFIG_REQ_MCU_TOPIC:  "/EL/pot_config_mcu_req"
+    POT_CONFIG_TOPIC:          "/EL/pot_config_response"
+
+    SERVO_CONFIG_REQ_MCU_TOPIC:  "/EL/servo_config_mcu_req"
+    SERVO_CONFIG_TOPIC:          "/EL/servo_config_response"
+
+    ACCEL_CONFIG_REQ_MCU_TOPIC:  "/EL/accel_config_mcu_req"
+    ACCEL_CONFIG_TOPIC:          "/EL/accel_config_response"
+
+    GYRO_CONFIG_REQ_MCU_TOPIC:  "/EL/gyro_config_mcu_req"
+    GYRO_CONFIG_TOPIC:          "/EL/gyro_config_response"
+
+    MAG_CONFIG_REQ_MCU_TOPIC:  "/EL/mag_config_mcu_req"
+    MAG_CONFIG_TOPIC:          "/EL/mag_config_response"
+
+    # Subscribers ===========================
+    #SPECTRO_REQ_TOPIC:    "/EL/spectro_req"  #still in code but not used right now
+    SERVO_REQ_TOPIC:      "/EL/servo_req"
+    #LASER_REQ_TOPIC:      "/EL/laser_req"  #still in code but not used right now
+    LED_COM_TOPIC:        "/EL/LedCommands"
+
+    # Config
+    MASS_CONFIG_REQ_JETSON_TOPIC:   "/EL/mass_config_req"
+    POT_CONFIG_REQ_JETSON_TOPIC:    "/EL/pot_config_req"
+    SERVO_CONFIG_REQ_JETSON_TOPIC:  "/EL/servo_config_req"
+    ACCEL_CONFIG_REQ_JETSON_TOPIC:  "/EL/accel_config_req"
+    GYRO_CONFIG_REQ_JETSON_TOPIC:   "/EL/gyro_config_req"
+    MAG_CONFIG_REQ_JETSON_TOPIC:    "/EL/mag_config_req"
+
+    # Calibration
+    CONTAINER_MASS_CALIB_OFFSET_TOPIC:  "/EL/container/mass_calib_offset"
+    DRILL_MASS_CALIB_OFFSET_TOPIC:      "/EL/drill/mass_calib_offset"
+
+    CONTAINER_MASS_CALIB_SCALE_TOPIC:   "/EL/container/mass_calib_scale"
+    DRILL_MASS_CALIB_SCALE_TOPIC:       "/EL/drill/mass_calib_scale"
+
+    IMU_CALIB_TOPIC:                    "/EL/imu_calib"
+
+    # new one for 2025
+    DUST_TOPIC:           "/EL/DustSensor"
