@@ -35,16 +35,18 @@ public:
     }
 
 private:
+    void createPubSub(int bus_id);
+    void verifyConnection(int bus_id);
 
-    CanSocketDriver* driver0;
-    CANBus* bus0;
+    CanSocketDriver* driver[2];
+    CANBus* bus[2];
+    std::string bus_name[2] = {'can0', 'can1'};
 
-    CanSocketDriver* driver1;
-    CANBus* bus1;
+    uint32_t retry_count[2] = {0};
+    rclcpp::TimerBase::SharedPtr retry_timer[2];
 
     BRoCoPublisher* pub;
     BRoCoSubscriber* sub;
-    rclcpp::TimerBase::SharedPtr retry_timer;
 
     MuxPublisher<custom_msg::msg::LEDResponse>* led_response_mux;
 };
