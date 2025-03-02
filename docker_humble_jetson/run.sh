@@ -1,8 +1,9 @@
 # If not working, first do: sudo rm -rf /tmp/.docker.xauth
 # If still not working, try running the script as root.
 
-sh ../../canfd.sh
+sh ../../canfd.sh # Runs the cafd.sh file, located two directories up
 
+# All of this next block is to allow the creation of a GUI in docker
 XAUTH=/tmp/.docker.xauth
 
 echo "Preparing Xauthority data..."
