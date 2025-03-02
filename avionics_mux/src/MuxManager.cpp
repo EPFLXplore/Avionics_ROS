@@ -12,14 +12,14 @@
 
 MuxManager::MuxManager() : Node("mux_manager") {
     
-    this->declare_parameter("ATTEMPT_RETRY");
+    this->declare_parameter("ATTEMPT_RETRY", true);
     this->declare_parameter("CONNECTION_RETRY_INTERVAL", 1);
 
     // For Can0 and Can1 create the driver, connect to the Can, create a pub and sub instance
     for (int bus_id = 0; bus_id < NB_BUS; bus_id++){
 
         // Attempt to create a driver
-        this->driver[bus_id] = new CanSocketDriver(this->bus_name[bus_id]);
+        this->driver[bus_id] = new CanSocketDriver(bus_name[bus_id]);
 
         // Check if succesfull, this will create a callback on timer, pubsub() in here
         if(get_param<bool>("ATTEMPT_RETRY") == true){
@@ -65,7 +65,7 @@ void MuxManager::verifyConnection(int bus_id) {
 // Attach to Can0 and Can1
 void MuxManager::createPubSub(int bus_id) {
     this->bus[bus_id] = new CANBus(this->driver[bus_id]);
-    this->pub[bus_id] = new BRoCoPublisher(this->bus[bus_id], this);
-    this->sub[bus_id] = new BRoCoSubscriber(this->bus[bus_id], this);
+    //this->pub[bus_id] = new BRoCoPublisher(this->bus[bus_id], this);
+    //this->sub[bus_id] = new BRoCoSubscriber(this->bus[bus_id], this);
     this->driver[bus_id]->start_reception();
 }

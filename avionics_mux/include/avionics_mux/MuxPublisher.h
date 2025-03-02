@@ -22,15 +22,9 @@ public:
 
 private:
     rclcpp::Node* parent;
-    std::string topic_name;
-    std::string bus0 = "";
-    std::string bus1 = "";
-    typename rclcpp::Publisher<MessageT>::SharedPtr pub;
-    typename rclcpp::Subscription<MessageT>::SharedPtr sub0;
-    typename rclcpp::Subscription<MessageT>::SharedPtr sub1;
+
 
     void initCallbacks();
-    uint8_t selected_bus(bool node_state_bus0, bool node_state_bus1);
 };
 
 #endif /* MUX_PUBLISHER_H */

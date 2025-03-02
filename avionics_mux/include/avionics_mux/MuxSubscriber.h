@@ -23,12 +23,7 @@ public:
 private:
     rclcpp::Node* parent;
     std::string topic_name;
-    std::string bus0 = "";
-    std::string bus1 = "";
     uint16_t default_id = 0;
-    typename rclcpp::Publisher<MessageT>::SharedPtr pub0;
-    typename rclcpp::Publisher<MessageT>::SharedPtr pub1;
-    typename rclcpp::Subscription<MessageT>::SharedPtr sub;
 
     void initCallback();
     uint8_t selected_bus(bool node_state_bus0, bool node_state_bus1);
