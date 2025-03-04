@@ -1,32 +1,31 @@
 /*
  * MuxSubscriber.h
  *
- *      Author: Vincent Nguyen
+ *      Author: Matas Jones
  */
 
 #ifndef MUX_SUBSCRIBER_H
 #define MUX_SUBSCRIBER_H
 
 #include "rclcpp/rclcpp.hpp"
-#include <string>
+#include "BRoCo/CANBus.h"
 
-template<typename MessageT>
 class MuxSubscriber {
 public:
     MuxSubscriber(
         rclcpp::Node* parent,
         const std::string& topic_name,
-        uint16_t default_id);
-
-    void callback(const typename MessageT::SharedPtr msg);
+        );
 
 private:
-    rclcpp::Node* parent;
-    std::string topic_name;
-    uint16_t default_id = 0;
 
-    void initCallback();
-    uint8_t selected_bus(bool node_state_bus0, bool node_state_bus1);
+    rclcpp::Node* parent;
+    CANBus* bus;
+
+    // Declare a pointer which will be used in the cpp file to create a sub instance
+    rclcpp::Subscription<custom_msg::msg::LedsCommand>::SharedPtr led_req_sub;
+
+
 };
 
 #endif /* MUX_SUBSCRIBER_H */

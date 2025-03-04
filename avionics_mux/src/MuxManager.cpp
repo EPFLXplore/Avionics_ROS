@@ -23,13 +23,13 @@ MuxManager::MuxManager() : Node("mux_manager") {
 
         // Check if succesfull, this will create a callback on timer, pubsub() in here
         if(get_param<bool>("ATTEMPT_RETRY") == true){
-            this->retry_timer[bus_id] = this->create_wall_timer(
+                this->retry_timer[bus_id] = this->create_wall_timer(
                 std::chrono::milliseconds(get_param<uint32_t>("CONNECTION_RETRY_INTERVAL")),
-                std::bind(verifyConnection(this->driver[bus_id], this->bus_name[bus_id]), this)
+                [this, bus_id]() { this->verifyConnection(bus_id); } // Capture bus_id by value
             );
+
         }
     }
-
 }
 
 MuxManager::~MuxManager() {
@@ -50,7 +50,7 @@ void MuxManager::verifyConnection(int bus_id) {
     if (driver[bus_id]->isConnected()) {
         RCLCPP_INFO(this->get_logger(), "CAN driver connected on %s", this->bus_name[bus_id]);
         retry_timer[bus_id]->cancel();  // Stop the retry attempts
-        createPubSub();
+        createPubSub(bus_id);
     }
     else
     {
@@ -66,6 +66,6 @@ void MuxManager::verifyConnection(int bus_id) {
 void MuxManager::createPubSub(int bus_id) {
     this->bus[bus_id] = new CANBus(this->driver[bus_id]);
     //this->pub[bus_id] = new BRoCoPublisher(this->bus[bus_id], this);
-    //this->sub[bus_id] = new BRoCoSubscriber(this->bus[bus_id], this);
+    this->sub[bus_id] = new MuxSubscriber(this->bus[bus_id], this);
     this->driver[bus_id]->start_reception();
 }

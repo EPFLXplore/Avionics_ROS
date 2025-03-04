@@ -1,4 +1,4 @@
-###########################################
+##########################################
 # Xplore Electronics image
 ###########################################
 FROM ghcr.io/epflxplore/docker_commons:humble-jetson
@@ -20,7 +20,7 @@ WORKDIR /home/$USERNAME/dev_ws/src
 COPY . .
 
 # Set a directory to build the project
-WORKDIR /home/$USERNAME/dev_ws
+WORKDIR /home/$USERNAME/dev_ws/src
 
 # Add the source of the project to the .bashrc
 RUN echo "if [ -f /home/${USERNAME}/dev_ws/install/setup.bash ]; then source /home/${USERNAME}/dev_ws/install/setup.bash; fi" >> /home/${USERNAME}/.bashrc
