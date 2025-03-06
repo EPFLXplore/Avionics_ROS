@@ -1,7 +1,6 @@
 [submodule "BRoCo"]
-	path = src/BRoCo
+	path = BRoCo
 	url = git@github.com:EPFLXplore/BRoCo.git
-	branch = EL-BRoCo
 [submodule "custom_msg"]
-	path = src/custom_msg
+	path = custom_msg
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
