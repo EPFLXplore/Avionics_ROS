@@ -1,7 +1,0 @@
-/**:
-  ros__parameters:
-    drill_mode_srv: /SC/drill_mode_srv            # service for activatre drill (DrillMode)
-    drill_cmd: /SC/drill_cmd                     # command sent to FSM Drill from Interface (ScDrillCmds)
-    status_system: /SC/drill_state                # send the 1 for active, 0 inactive (Interface) to CS (Bool)
-    science_pubsub_motor_status: SC/motor_status  # motor status, screw and translation (ScMotorStatus)
-    science_pubsub_fms_status: SC/fsm_status      # progress of drill FSM (ScFSMStatusDrill)

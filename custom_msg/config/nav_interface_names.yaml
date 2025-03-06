@@ -1,4 +1,0 @@
-/**:
-  ros__parameters:
-    nav_motors_status: /NAV/motor_nav_status
-    system_status: /NAV/NAV_mode
