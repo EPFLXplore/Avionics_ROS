@@ -22,8 +22,6 @@ public:
 
 private:
     rclcpp::Node* parent;
-
-
     void initCallbacks();
 };
 

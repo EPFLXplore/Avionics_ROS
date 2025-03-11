@@ -4,9 +4,12 @@
  *      Author: Matas Jones
  */
 
+#include "MuxSubscriber.h"
+
 #include "BRoCoSubscriber.h"
 #include "BRoCoManager.h"
 #include "BRoCo/CanSocketDriver.h"
+#include "BRoCo/CANBus.h"
 
 #include "Utils.h"
 

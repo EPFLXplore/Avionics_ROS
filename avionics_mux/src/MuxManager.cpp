@@ -34,7 +34,6 @@ MuxManager::MuxManager() : Node("mux_manager") {
 
 MuxManager::~MuxManager() {
     RCLCPP_INFO(this->get_logger(), "Deleting Mux Manager");
-    
 }
 
 void MuxManager::verifyConnection(int bus_id) {
@@ -66,6 +65,7 @@ void MuxManager::verifyConnection(int bus_id) {
 void MuxManager::createPubSub(int bus_id) {
     this->bus[bus_id] = new CANBus(this->driver[bus_id]);
     //this->pub[bus_id] = new BRoCoPublisher(this->bus[bus_id], this);
+    this->sub[bus_id] = new MuxPublisher(this->bus[bus_id], this);
     this->sub[bus_id] = new MuxSubscriber(this->bus[bus_id], this);
     this->driver[bus_id]->start_reception();
 }

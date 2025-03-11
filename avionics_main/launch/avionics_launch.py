@@ -84,19 +84,19 @@ def generate_launch_description():
     # Iterate through the namespaces
     for bus in [bus0_name, bus1_name]:
 
-    # Launch the node for the namespace with parameters
-    can_node = Node(
-        package=package_name,
-        executable=executable_name,
-        namespace=ns + "/" + bus,
-        parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
-        output='screen',
-        arguments=['--ros-args',
-            '--log-level', logger,
-            '--param', 'bus:=' + bus,
-            '--param', 'topic_prefix:=' + bus]
-    )
-    ld.add_action(can_node)
+        # Launch the node for the namespace with parameters
+        can_node = Node(
+            package=package_name,
+            executable=executable_name,
+            namespace=ns + "/" + bus,
+            parameters=[topic_names_params_file, id_params_file, calibration_params_file, connection_params_file],
+            output='screen',
+            arguments=['--ros-args',
+                '--log-level', logger,
+                '--param', 'bus:=' + bus,
+                '--param', 'topic_prefix:=' + bus]
+        )
+        ld.add_action(can_node)
 
     # # Define the package and executable names for the mux node
     # mux_package_name = 'avionics_mux'

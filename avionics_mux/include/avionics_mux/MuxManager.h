@@ -23,12 +23,16 @@ public:
     MuxManager();
     ~MuxManager();
 
+    // allows function to return any type 'T', so like int, str, etc.
     template <typename T>
     T get_param(const std::string& parameter_name) {
         T value;
+        //try and obtain parameter_name value, returns true if found and stores value in value.
+        //function comes from rclcpp::node inheritance.
         if (this->get_parameter(parameter_name, value)) {
             return value;
         } else {
+
             RCLCPP_WARN(this->get_logger(), "Parameter [%s] not found, using default value.", parameter_name.c_str());
             return T();
         }
