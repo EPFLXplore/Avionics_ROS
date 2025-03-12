@@ -9,6 +9,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include "BRoCo/CANBus.h"
+#include "custom_msg/msg/mass_array.hpp"
 
 class MuxSubscriber {
 public:
@@ -23,7 +24,7 @@ private:
     CANBus* bus;
 
     // Declare a pointer which will be used in the cpp file to create a sub instance
-    rclcpp::Subscription<custom_msg::msg::LedsCommand>::SharedPtr led_req_sub;
+    //rclcpp::Subscription<custom_msg::msg::LedsCommand>::SharedPtr led_req_sub;
 
 
 };

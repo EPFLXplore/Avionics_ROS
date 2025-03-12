@@ -12,6 +12,8 @@
 #include "MuxPublisher.h"
 #include "MuxSubscriber.h"
 
+#include "custom_msg/msg/mass_array.hpp"
+
 #include "BRoCo/CanSocketDriver.h"
 #include "BRoCo/CANBus.h"
 

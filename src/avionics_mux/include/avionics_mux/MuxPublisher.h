@@ -4,6 +4,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include <string>
 
+#include "custom_msg/msg/mass_array.hpp"
+
 #include "BRoCo/CANBus.h"
 #include "Protocol/Protocol.h"
 
@@ -14,8 +16,8 @@ public:
     MuxPublisher(CANBus* bus, rclcpp::Node* parent);
         // const std::string& topic_name);
 
-    void callback0(const typename MessageT::SharedPtr msg);
-    void callback1(const typename MessageT::SharedPtr msg);
+    // void callback0(const typename MessageT::SharedPtr msg);
+    // void callback1(const typename MessageT::SharedPtr msg);
 
 private:
     rclcpp::Node* parent;

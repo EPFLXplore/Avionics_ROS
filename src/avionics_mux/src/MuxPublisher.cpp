@@ -2,6 +2,9 @@
 #include "MuxPublisher.h"
 #include "MuxManager.h"
 
+#include "custom_msg/msg/mass_array.hpp"
+
+
 MuxPublisher::MuxPublisher(
     CanBus* bus,
     rclcpp::Node* parent
