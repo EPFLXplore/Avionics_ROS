@@ -47,8 +47,8 @@ private:
     uint32_t retry_count[2] = {0, 0};
     rclcpp::TimerBase::SharedPtr retry_timer[2];
 
-    MuxPublisher* pub;
-    MuxSubscriber* sub;
+    MuxPublisher* pub[2];
+    MuxSubscriber* sub[2];
 
 };
 

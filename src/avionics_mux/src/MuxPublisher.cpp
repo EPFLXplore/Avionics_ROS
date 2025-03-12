@@ -1,18 +1,13 @@
-#include "rclcpp/rclcpp.hpp"
 #include "MuxPublisher.h"
 #include "MuxManager.h"
 
 #include "custom_msg/msg/mass_array.hpp"
 
+#include "rclcpp/rclcpp.hpp"
 
-MuxPublisher::MuxPublisher(
-    CanBus* bus,
-    rclcpp::Node* parent
-    // const std::string& topic_name
-) : bus(bus), parent(parent)//, topic_name(topic_name)
-{    
+MuxPublisher::MuxPublisher(CANBus* _bus, rclcpp::Node* _parent) : bus(_bus), parent(_parent) {    
     // Create a publisher based on the provided publish topic name
-    this->mass_pub = parent->create_publisher<custom_msg::msg::MassArray>(get_prefix() + get_param<std::string>("MASS_ARRAY"), 10);
+    this->mass_pub = parent->create_publisher<custom_msg::msg::MassArray>(("MASS_ARRAY"), 10);
     
     RCLCPP_INFO(parent->get_logger(), "Publisher created");
 
@@ -21,6 +16,8 @@ MuxPublisher::MuxPublisher(
     RCLCPP_INFO(parent->get_logger(), "Handles created");
 
 }
+
+MuxPublisher::~MuxPublisher(){}
 
 /*
 template<typename MessageT>

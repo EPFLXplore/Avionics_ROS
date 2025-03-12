@@ -13,9 +13,9 @@ class MuxPublisher {
 public:
     //Topic name follow this template:
     // topic_name = get_prefix() + get_param<std::string>("**INSERT TOPIC NAME**")
-    MuxPublisher(CANBus* bus, rclcpp::Node* parent);
+    MuxPublisher(CANBus* _bus, rclcpp::Node* _parent);
         // const std::string& topic_name);
-
+    ~MuxPublisher();
     // void callback0(const typename MessageT::SharedPtr msg);
     // void callback1(const typename MessageT::SharedPtr msg);
 
