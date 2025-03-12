@@ -7,10 +7,7 @@
 #ifndef MUX_MANAGER_H
 #define MUX_MANAGER_H
 
-#define NOBUS (2)
-
-
-#include "custom_msg/msg/led_response.hpp"
+// #define NOBUS (2)
 
 #include "MuxPublisher.h"
 #include "MuxSubscriber.h"
@@ -32,7 +29,6 @@ public:
         if (this->get_parameter(parameter_name, value)) {
             return value;
         } else {
-
             RCLCPP_WARN(this->get_logger(), "Parameter [%s] not found, using default value.", parameter_name.c_str());
             return T();
         }
@@ -49,10 +45,9 @@ private:
     uint32_t retry_count[2] = {0, 0};
     rclcpp::TimerBase::SharedPtr retry_timer[2];
 
-    //MuxPublisher* pub;
+    MuxPublisher* pub;
     MuxSubscriber* sub;
 
-    MuxPublisher<custom_msg::msg::LEDResponse>* led_response_mux;
 };
 
 #endif /* MUX_MANAGER_H */

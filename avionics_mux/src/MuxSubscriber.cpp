@@ -9,7 +9,6 @@
 #include "BRoCoSubscriber.h"
 #include "BRoCoManager.h"
 #include "BRoCo/CanSocketDriver.h"
-#include "BRoCo/CANBus.h"
 
 #include "Utils.h"
 
@@ -42,7 +41,7 @@ void MuxSubscriber::ledReqCallback(const custom_msg::msg::LedsCommand::SharedPtr
         id = get_node_id("NAV_NODE_ID");
     RCLCPP_INFO(parent->get_logger(), "Sending LED request to node ID %s...", std::to_string(id).c_str());
     static LEDPacket packet;
-    //packet.state = msg->state;
+    packet.state = msg->state;
     MAKE_IDENTIFIABLE(packet);
     MAKE_RELIABLE(packet);
     set_destination_id(id);

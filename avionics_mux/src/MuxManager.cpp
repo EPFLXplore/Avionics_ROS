@@ -10,7 +10,7 @@
 
 #define NB_BUS 2
 
-MuxManager::MuxManager() : Node("mux_manager") {
+MuxManager::MuxManager() : Node("avionics_mux") {
     
     this->declare_parameter("ATTEMPT_RETRY", true);
     this->declare_parameter("CONNECTION_RETRY_INTERVAL", 1);
@@ -25,7 +25,9 @@ MuxManager::MuxManager() : Node("mux_manager") {
         if(get_param<bool>("ATTEMPT_RETRY") == true){
                 this->retry_timer[bus_id] = this->create_wall_timer(
                 std::chrono::milliseconds(get_param<uint32_t>("CONNECTION_RETRY_INTERVAL")),
-                [this, bus_id]() { this->verifyConnection(bus_id); } // Capture bus_id by value
+                [this, bus_id]() { 
+                    this->verifyConnection(bus_id); 
+                } // Capture bus_id by value
             );
 
         }
@@ -34,6 +36,7 @@ MuxManager::MuxManager() : Node("mux_manager") {
 
 MuxManager::~MuxManager() {
     RCLCPP_INFO(this->get_logger(), "Deleting Mux Manager");
+    // Unalocate POINTERS !!!!!!!!!!!!!!!!!!!!!!!!!!
 }
 
 void MuxManager::verifyConnection(int bus_id) {
@@ -50,12 +53,11 @@ void MuxManager::verifyConnection(int bus_id) {
         RCLCPP_INFO(this->get_logger(), "CAN driver connected on %s", this->bus_name[bus_id]);
         retry_timer[bus_id]->cancel();  // Stop the retry attempts
         createPubSub(bus_id);
-    }
-    else
-    {
-        ++this->retry_count[bus_id];
+    } else{
+        ++retry_count[bus_id];
         RCLCPP_WARN(this->get_logger(), "CAN driver not connected on '%s', retrying... (Attempt %d/%d)", bus_name[bus_id], 
-            this->retry_count[bus_id], get_param<uint32_t>("CONNECTION_RETRY_NUM"));
+            retry_count[bus_id], get_param<uint32_t>("CONNECTION_RETRY_NUM"));
+    
         delete driver[bus_id];  // Clean up the previous instance
         driver[bus_id] = nullptr;
     }    
@@ -64,8 +66,7 @@ void MuxManager::verifyConnection(int bus_id) {
 // Attach to Can0 and Can1
 void MuxManager::createPubSub(int bus_id) {
     this->bus[bus_id] = new CANBus(this->driver[bus_id]);
-    //this->pub[bus_id] = new BRoCoPublisher(this->bus[bus_id], this);
-    this->sub[bus_id] = new MuxPublisher(this->bus[bus_id], this);
+    this->pub[bus_id] = new MuxPublisher(this->bus[bus_id], this);
     this->sub[bus_id] = new MuxSubscriber(this->bus[bus_id], this);
     this->driver[bus_id]->start_reception();
 }

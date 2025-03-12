@@ -1,42 +1,25 @@
-/*
- * MuxPublisher.cpp
- *
- *      Author: Vincent Nguyen
- */
 #include "rclcpp/rclcpp.hpp"
 #include "MuxPublisher.h"
 #include "MuxManager.h"
 
-template<typename MessageT>
-MuxPublisher<MessageT>::MuxPublisher(
-    rclcpp::Node* parent,
-    const std::string& topic_name
-) : parent(parent), topic_name(topic_name),
-    bus0(dynamic_cast<MuxManager*>(parent)->get_param<std::string>("bus0")),
-    bus1(dynamic_cast<MuxManager*>(parent)->get_param<std::string>("bus1"))
-{
+MuxPublisher::MuxPublisher(
+    CanBus* bus,
+    rclcpp::Node* parent
+    // const std::string& topic_name
+) : bus(bus), parent(parent)//, topic_name(topic_name)
+{    
     // Create a publisher based on the provided publish topic name
-    pub = parent->create_publisher<MessageT>(topic_name, 10);
+    this->mass_pub = parent->create_publisher<custom_msg::msg::MassArray>(get_prefix() + get_param<std::string>("MASS_ARRAY"), 10);
+    
+    RCLCPP_INFO(parent->get_logger(), "Publisher created");
 
-    // Initialize callbacks
-    initCallbacks();
+    bus->handle<MassPacket>(std::bind(&MuxPublisher::handleMassPacket, this, std::placeholders::_1, std::placeholders::_2));
+
+    RCLCPP_INFO(parent->get_logger(), "Handles created");
+
 }
 
-template<typename MessageT>
-void MuxPublisher<MessageT>::initCallbacks() {
-    sub0 = parent->create_subscription<MessageT>(
-        "/" + bus0 + topic_name, 10,
-        [this](const typename MessageT::SharedPtr msg) {
-            callback0(msg);
-        });
-
-    sub1 = parent->create_subscription<MessageT>(
-        "/" + bus1 + topic_name, 10,
-        [this](const typename MessageT::SharedPtr msg) {
-            callback1(msg);
-        });
-}
-
+/*
 template<typename MessageT>
 void MuxPublisher<MessageT>::callback0(const typename MessageT::SharedPtr msg) {
     if (msg->id < dynamic_cast<MuxManager*>(parent)->get_max_number_nodes()) {
@@ -82,5 +65,29 @@ uint8_t MuxPublisher<MessageT>::selected_bus(bool node_state_bus0, bool node_sta
     else
         return NOBUS;
 }
+*/
 
-template class MuxPublisher<custom_msg::msg::LEDResponse>;
+void MuxPublisher::handleMassPacket(uint8_t senderID, MassPacket* packet) {
+    if(!(IS_RELIABLE(*packet))) {
+		RCLCPP_ERROR(parent->get_logger(), "Unreliable mass packet");
+		return;
+	}
+  
+    auto msg = custom_msg::msg::MassArray();
+
+    msg.id = packet->id;
+
+    for (uint8_t i = 0; i < msg.mass.size(); ++i)
+        msg.mass[i] = packet->mass[i];
+
+    mass_pub->publish(msg);
+
+    // if (packet->id == get_node_id("SC_DRILL_NODE_ID"))
+    //     drill_mass_pub->publish(msg);
+    // else if (packet->id == get_node_id("SC_CONTAINER_NODE_ID"))
+    //     container_mass_pub->publish(msg);
+    // else
+    //     RCLCPP_INFO(parent->get_logger(), "Mass packet received but ID is not valid");
+}
+
+
