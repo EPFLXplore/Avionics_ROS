@@ -12,8 +12,8 @@
 #include "MuxPublisher.h"
 #include "MuxSubscriber.h"
 
-#include "BRoCo/CanSocketDriver.h"
-#include "BRoCo/CANBus.h"
+#include "BRoCo/include/BRoCo/CanSocketDriver.h"
+#include "BRoCo/include/BRoCo/CANBus.h"
 
 class MuxManager : public rclcpp::Node {
 public:

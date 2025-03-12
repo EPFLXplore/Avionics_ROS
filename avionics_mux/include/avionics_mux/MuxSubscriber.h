@@ -8,7 +8,7 @@
 #define MUX_SUBSCRIBER_H
 
 #include "rclcpp/rclcpp.hpp"
-#include "BRoCo/CANBus.h"
+#include "BRoCo/include/BRoCo/CANBus.h"
 
 class MuxSubscriber {
 public:

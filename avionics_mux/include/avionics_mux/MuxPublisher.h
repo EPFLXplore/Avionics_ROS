@@ -4,8 +4,8 @@
 #include "rclcpp/rclcpp.hpp"
 #include <string>
 
-#include "BRoCo/CANBus.h"
-#include "Protocol/Protocol.h"
+#include "BRoCo/include/BRoCo/CANBus.h"
+#include "BRoCo/include/Protocol/Protocol.h"
 
 class MuxPublisher {
 public:
