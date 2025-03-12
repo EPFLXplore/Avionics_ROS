@@ -1,0 +1,5 @@
+int8 mode
+---
+int8 system_mode
+int8 error_type
+string error_message

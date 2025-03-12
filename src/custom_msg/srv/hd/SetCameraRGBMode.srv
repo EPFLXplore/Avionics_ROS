@@ -1,0 +1,5 @@
+string mode  # The mode to set, e.g., "RGB" or "RGB-D"
+---
+bool success  # True if the mode was set successfully, False otherwise
+string message  # Feedback message, e.g., "Mode set to RGB"
+
