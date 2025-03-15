@@ -1,6 +1,5 @@
 # Colcon build files, keep only source and recompile everytime to avoid issues
 log/
-build/
 install/
 libs/
 
