@@ -1,0 +1,44 @@
+/**:
+  ros__parameters:
+    hd_fsm_joint_vel_cmd_topic: /HD/fsm/joint_vel_cmd
+    hd_fsm_man_inv_twist_topic: /HD/fsm/man_inv_twist
+    hd_fsm_task_assignment_topic: /HD/fsm/task_assignment
+    hd_fsm_mode_transmission_topic: /HD/fsm/mode_change # internal  TODO: change name
+    hd_fsm_abort_topic: /HD/fsm/abort
+    hd_perception_bricks: /HD/perception/bricks
+    hd_perception_ethernet: /HD/perception/ethernet
+    hd_perception_probe: /HD/perception/probe
+    hd_perception_rocks: /HD/perception/rocks
+    hd_perception_aruco_object: /HD/perception/aruco_object
+    hd_button_pose: /HD/perception/button_pose
+    
+
+    hd_fsm_mode_srv: /HD/fsm/mode
+    system_status: /HD/HD_mode
+    hd_fsm_man_inv: /HD/sensors/directional_torque
+
+    hd_motor_telemetry: /HD/motor_control/joint_telemetry
+    hd_motor_status: motor_status
+    hd_old_motor_status: HD/motor_control/old_motor_status
+    hd_motor_command : motor_command
+
+    hd_fsm_goal_srv: /HD/fsm/goal
+    hd_task_executor_goal_srv: /HD/task_executor/goal
+    hd_model_set_goal_srv: /HD/model/goal
+
+    perception_camera_hd_rgbd: /HD/camera/rgbd
+    hd_camera_rgb: /HD/camera/rgb
+    hd_model_results: /HD/model/results # contains the RGBD from camera + results from segmentation
+    perception_camera_hd_rgb: /HD/perception/rgb
+
+    hd_camera_params: /HD/camera/params
+    hd_gui_buttons: /gui_node/button_press_service
+
+    hd_eef_pose: /HD/kinematics/eef_pose
+    hd_trajectory_feedback: /HD/kinematics/traj_feedback
+    hd_pose_goal: /HD/kinematics/pose_goal
+    hd_joint_goal: HD/kinematics/joint_goal
+    hd_named_joint_target: /HD/kinematics/named_joint_target
+    hd_add_object: /HD/kinematics/add_object
+    hd_attach_object: /HD/kinematics/attach_object
+    hd_single_joint_goal: HD/kinematics/single_joint_cmd

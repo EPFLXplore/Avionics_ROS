@@ -1,0 +1,3 @@
+Ethernet[] ethernets
+
+# ArucoObject

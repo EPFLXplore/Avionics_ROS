@@ -1,0 +1,8 @@
+string subsystem
+string camera_name
+bool activate
+
+---
+
+int8 error_type
+string error_message

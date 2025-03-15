@@ -1,0 +1,7 @@
+# Request
+sensor_msgs/CompressedImage image  # Input: The image to run detection on
+---
+# Response
+SegmentationData[] segmentation_data
+bool success  # Output: Success status of the detection process
+string message  # Output: Message indicating status or errors

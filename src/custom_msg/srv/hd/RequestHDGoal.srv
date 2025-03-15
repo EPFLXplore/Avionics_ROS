@@ -1,0 +1,10 @@
+# Request
+
+HDGoal goal
+
+---
+
+# Response
+
+bool success
+string message
