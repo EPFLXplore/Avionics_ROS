@@ -1,8 +1,0 @@
-# Define a goal position
-int32[3] goal_pos
----
-# Define the result of the action
-bool success
----
-# Define the feedback of the action
-string current_location

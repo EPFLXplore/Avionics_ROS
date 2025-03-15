@@ -1,6 +1,0 @@
-sensor_msgs/CompressedImage rock_image
-
----
-
-float32 x
-float32 y

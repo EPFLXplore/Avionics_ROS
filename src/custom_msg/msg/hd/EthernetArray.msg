@@ -1,3 +1,0 @@
-Ethernet[] ethernets
-
-# ArucoObject
