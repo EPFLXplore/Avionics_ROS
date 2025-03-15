@@ -28,8 +28,7 @@ def generate_launch_description():
         description="Logging level",
     ))
 
-    config_package_name = "avionics_config"
-    config_executable_name = "avionics_config"
+    config_package_name = "custom_msg"
 
     topic_names_params_file = os.path.join(
         get_package_share_directory(config_package_name),
@@ -83,12 +82,10 @@ def generate_launch_description():
         package=package_name,
         executable=executable_name,
         namespace=ns,# + "/" + bus,
-        parameters=[topic_names_params_file] #,id_params_file, calibration_params_file, connection_params_file],
+        parameters=[topic_names_params_file], #,id_params_file, calibration_params_file, connection_params_file],
         output='screen',
         arguments=['--ros-args',
-            '--log-level', logger,
-            '--param', 'bus:=' + bus,
-            '--param', 'topic_prefix:=' + bus]
+            '--log-level', logger]
     )
     ld.add_action(can_node)
 
