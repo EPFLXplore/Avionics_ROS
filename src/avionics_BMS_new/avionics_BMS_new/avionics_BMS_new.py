@@ -1,6 +1,10 @@
 import datetime
 import numpy as np
+import rclpy
+from rclpy.node import Node
 from pymodbus.client import ModbusSerialClient
+
+from std_msgs.msg import String # Temporary
 
 # Configure Modbus Serial Client
 usb_port = 'COM3'
@@ -21,6 +25,35 @@ num_cells = 7
 cells = list(range(1, num_cells + 1))
 
 print("Timestamp | " + " | ".join([f"Cell {i} Voltage (V)" for i in cells]) + " | Balances | Temperature (C) | Current (A) | Voltage (V) | Status")
+
+
+class BMSPublisher(Node):
+
+    def __init__(self):
+        super().__init__('BMS_publisher') # Super init calls the node class's constructor
+        self.publisher_ = self.create_publisher(String, 'BMS_topic', 10) # Create a publisher on the topic BMS_topic
+        timer_period = 2  # seconds
+        self.timer = self.create_timer(timer_period, self.timer_callback)
+
+    def timer_callback(self):
+        msg = String()
+        msg.data = 'Hello World'
+        self.publisher_.publish(msg) # Publish the message on the topic
+        self.get_logger().info('Publishing: "%s"' % msg.data) # TEMP: log the message being sent
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    bms_pub = BMSPublisher() # Create an instance of the BMSPublisher class
+
+    rclpy.spin(bms_pub) # spin the bms publisher node
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    bms_pub.destroy_node()
+    rclpy.shutdown() # When finished
 
 # Helper function to read registers
 def read_registers(client, address, count, slave_id):
@@ -132,13 +165,13 @@ def get_bms_data():
 
 
 # Run updates periodically
-if __name__ == "__main__":
-    import time
-    try:
-        while True:
-            update()
-            print(get_bms_data())
-            time.sleep(5)  # 5-second interval
-    except KeyboardInterrupt:
-        print("Terminating...")
-        client.close()
+# if __name__ == "__main__":
+#     import time
+#     try:
+#         while True:
+#             update()
+#             print(get_bms_data())
+#             time.sleep(5)  # 5-second interval
+#     except KeyboardInterrupt:
+#         print("Terminating...")
+#         client.close()

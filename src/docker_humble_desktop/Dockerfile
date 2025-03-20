@@ -53,7 +53,7 @@ WORKDIR /home/$USERNAME/dev_ws
 RUN echo "if [ -f /home/${USERNAME}/dev_ws/install/setup.bash ]; then source /home/${USERNAME}/dev_ws/install/setup.bash; fi" >> /home/${USERNAME}/.bashrc
 
 # Install ROS 2 Nav dependencies
-RUN rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "libg2o g2o"
+#RUN rosdep update && rosdep install -i --from-path src --rosdistro $ROS_DISTRO -y --skip-keys "libg2o g2o"
 
 # Clean up
 RUN sudo rm -rf /var/lib/apt/lists/*

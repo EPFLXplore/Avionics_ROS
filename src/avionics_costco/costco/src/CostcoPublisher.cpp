@@ -10,9 +10,8 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
   this->mass_array_ =
       this->publisher<custom_msg::msg::MassArray>(("CostcoPublisher"), 10);
 
-  while(true){
-      SerialHandler::receive(*data);
-      
+  while (true) {
+    SerialHandler::receive(*data);
   }
 }
 
