@@ -4,3 +4,6 @@
 [submodule "custom_msg"]
 	path = custom_msg
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
+[submodule "src/ERC_SE_CustomMessages"]
+	path = src/ERC_SE_CustomMessages
+	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
