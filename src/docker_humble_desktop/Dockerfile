@@ -39,7 +39,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 USER $USERNAME
 
-RUN python3 -m pip install numpy
+RUN python3 -m pip install numpy pymodbus
 
 # Set a diretory to store the project
 WORKDIR /home/$USERNAME/dev_ws/src

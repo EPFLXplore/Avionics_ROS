@@ -26,7 +26,7 @@ cells = list(range(1, num_cells + 1))
 
 print("Timestamp | " + " | ".join([f"Cell {i} Voltage (V)" for i in cells]) + " | Balances | Temperature (C) | Current (A) | Voltage (V) | Status")
 
-
+# Create the BMSPublisher node which reads data from serial and sends it on ROS
 class BMSPublisher(Node):
 
     def __init__(self):
