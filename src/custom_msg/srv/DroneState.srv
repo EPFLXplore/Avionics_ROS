@@ -1,4 +1,0 @@
-string fsm_command
----
-bool success
-string message

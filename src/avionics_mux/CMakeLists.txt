@@ -15,26 +15,21 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Assume BRoCo is located in a sibling directory; adjust the path if necessary.
-set(BRoCo_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../BRoCo)
-if(EXISTS ${BRoCo_DIR}/CMakeLists.txt)
-  add_subdirectory(${BRoCo_DIR} ${CMAKE_BINARY_DIR}/BRoCo)
-else()
-  message(FATAL_ERROR "BRoCo source not found in ${BRoCo_DIR}")
-endif()
+# # Assume BRoCo is located in a sibling directory; adjust the path if necessary.
+# set(BRoCo_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../BRoCo)
+# if(EXISTS ${BRoCo_DIR}/CMakeLists.txt)
+#   add_subdirectory(${BRoCo_DIR} ${CMAKE_BINARY_DIR}/BRoCo)
+# else()
+#   message(FATAL_ERROR "BRoCo source not found in ${BRoCo_DIR}")
+# endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(custom_msg REQUIRED)
-find_package(BRoCo REQUIRED)
 
 include_directories(
   include/avionics_mux
-  ${BRoCo_INCLUDE_DIRS} 
-  ${CMAKE_CURRENT_SOURCE_DIR}/../BRoCo/include
 )
 
 if(BUILD_TESTING)
@@ -55,7 +50,7 @@ add_executable(avionics_mux
   src/MuxSubscriber.cpp
 )
 
-ament_target_dependencies(avionics_mux rclcpp sensor_msgs custom_msg BRoCo)
+ament_target_dependencies(avionics_mux rclcpp custom_msg)
 
 install(TARGETS
   avionics_mux

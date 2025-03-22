@@ -132,12 +132,12 @@ def get_bms_data():
         # Read individual cell voltages
         voltages = {}
         for i in cells:
-            address = i +8
+            address = i +8 # Addresses start at 8 starting from 0
             registers = read_registers(client, address, 1, slave_id=0xAA)
             voltages[i] = registers[0] / 10000 if registers else None
 
         registers = read_registers(client, 36, 2, slave_id=0xAA)
-        voltage = np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else None
+        v_bat = np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else None # outputs the voltage as a float
 
         #read status
         registers = read_registers(client, 50, 1, slave_id=0xAA)
@@ -160,7 +160,7 @@ def get_bms_data():
     except Exception as e:
         print(f"Error during update: {e}")
         return (None,None,None)
-    return (voltage,status,voltages)
+    return (v_bat,status,voltages)
 
 
 

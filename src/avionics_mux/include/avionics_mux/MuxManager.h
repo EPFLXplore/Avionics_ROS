@@ -7,49 +7,44 @@
 #ifndef MUX_MANAGER_H
 #define MUX_MANAGER_H
 
-// #define NOBUS (2)
+// // #define NOBUS (2)
 
-#include "MuxPublisher.h"
-#include "MuxSubscriber.h"
+// #include "MuxPublisher.h"
+// #include "MuxSubscriber.h"
 
-#include "custom_msg/msg/mass_array.hpp"
+// class MuxManager : public rclcpp::Node {
+// public:
+//     MuxManager();
+//     ~MuxManager();
 
-#include "BRoCo/CanSocketDriver.h"
-#include "BRoCo/CANBus.h"
+//     // allows function to return any type 'T', so like int, str, etc.
+//     template <typename T>
+//     T get_param(const std::string& parameter_name) {
+//         T value;
+//         //try and obtain parameter_name value, returns true if found and stores value in value.
+//         //function comes from rclcpp::node inheritance.
+//         if (this->get_parameter(parameter_name, value)) {
+//             return value;
+//         } else {
+//             RCLCPP_WARN(this->get_logger(), "Parameter [%s] not found, using default value.", parameter_name.c_str());
+//             return T();
+//         }
+//     }
 
-class MuxManager : public rclcpp::Node {
-public:
-    MuxManager();
-    ~MuxManager();
+// private:
+//     void createPubSub(int bus_id);
+//     void verifyConnection(int bus_id);
 
-    // allows function to return any type 'T', so like int, str, etc.
-    template <typename T>
-    T get_param(const std::string& parameter_name) {
-        T value;
-        //try and obtain parameter_name value, returns true if found and stores value in value.
-        //function comes from rclcpp::node inheritance.
-        if (this->get_parameter(parameter_name, value)) {
-            return value;
-        } else {
-            RCLCPP_WARN(this->get_logger(), "Parameter [%s] not found, using default value.", parameter_name.c_str());
-            return T();
-        }
-    }
+//     CanSocketDriver* driver[2];
+//     CANBus* bus[2];
+//     const char* bus_name[2] = {"can0", "can1"};
 
-private:
-    void createPubSub(int bus_id);
-    void verifyConnection(int bus_id);
+//     uint32_t retry_count[2] = {0, 0};
+//     rclcpp::TimerBase::SharedPtr retry_timer[2];
 
-    CanSocketDriver* driver[2];
-    CANBus* bus[2];
-    const char* bus_name[2] = {"can0", "can1"};
+//     MuxPublisher* pub[2];
+//     MuxSubscriber* sub[2];
 
-    uint32_t retry_count[2] = {0, 0};
-    rclcpp::TimerBase::SharedPtr retry_timer[2];
-
-    MuxPublisher* pub[2];
-    MuxSubscriber* sub[2];
-
-};
+// };
 
 #endif /* MUX_MANAGER_H */

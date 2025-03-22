@@ -1,6 +1,0 @@
-int64 system
-int64 mode
----
-int8 new_mode
-int8 error_type
-string error_message
