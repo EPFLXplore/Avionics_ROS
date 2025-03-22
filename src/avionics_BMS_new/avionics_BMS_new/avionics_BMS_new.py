@@ -4,10 +4,10 @@ import rclpy
 from rclpy.node import Node
 from pymodbus.client import ModbusSerialClient
 
-from std_msgs.msg import String # Temporary
+from custom_msg.msg import BMS # Import the BMS custom message
 
 # Configure Modbus Serial Client
-usb_port = 'COM3'
+usb_port = '/dev/ttyUSB0' # TOP RIGHT OF PI !
 port = usb_port
 
 
@@ -31,15 +31,20 @@ class BMSPublisher(Node):
 
     def __init__(self):
         super().__init__('BMS_publisher') # Super init calls the node class's constructor
-        self.publisher_ = self.create_publisher(String, 'BMS_topic', 10) # Create a publisher on the topic BMS_topic
+        self.publisher_ = self.create_publisher(BMS, 'BMS_topic', 10) # Create a publisher on the topic BMS_topic
         timer_period = 2  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
-        msg = String()
-        msg.data = 'Hello World'
+        v_bat,status,current = update()
+        msg = BMS()
+        msg.v_bat = float(v_bat)
+        msg.status = status
+        # msg.voltages = voltages 
+        msg.current = float(current)
         self.publisher_.publish(msg) # Publish the message on the topic
-        self.get_logger().info('Publishing: "%s"' % msg.data) # TEMP: log the message being sent
+        # self.get_logger().info(([f"Cell {str(i)} Voltage (V)" for i in voltages]) + " | Current (A) " + str(current) + " | Status" + status + " | v_bat " + str(v_bat))
+        self.get_logger().info("Current (A) " + str(current) + " A" + " | Status: " + status + " | v_bat " + str(v_bat) + " V")
 
 
 def main(args=None):
@@ -73,7 +78,7 @@ def update():
         for i in cells:
             address = i +8
             registers = read_registers(client, address, 1, slave_id=0xAA)
-            voltages[i] = registers[0] / 10000 if registers else None
+            voltages[i] = registers[0] / 10000 if registers else 0
             #print(registers)
 
         # Read balance state and encode as binary
@@ -83,10 +88,10 @@ def update():
 
         # Read pack current and temperature
         registers = read_registers(client, 38, 2, slave_id=0xAA)
-        current = np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else None
+        current = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else 0)
 
         registers = read_registers(client, 36, 2, slave_id=0xAA)
-        voltage = np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else None
+        v_bat = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else 0)
 
         registers = read_registers(client, 48, 2, slave_id=0xAA)
         temperature = registers[0] / 10 if registers else None
@@ -111,9 +116,10 @@ def update():
 
         
 
+        print("vbat: ", type(v_bat))
         # Log data to terminal
         print(f"{sample_time} | " + " | ".join([f"{voltages[i]:.3f}" for i in cells]) +
-              f" | {balances[:-2]} | {temperature:.1f} | {current:.2f} | {voltage:.2f}" + f"| {status}")
+              f" | {balances[:-2]} | {temperature:.1f} | {current:.2f} | {v_bat:.2f}" + f"| {status}")
 
         # Write data to log file
         # with open(log_file, 'a') as f:
@@ -125,52 +131,18 @@ def update():
 
     except Exception as e:
         print(f"Error during update: {e}")
-
-
-def get_bms_data():
-    try:
-        # Read individual cell voltages
-        voltages = {}
-        for i in cells:
-            address = i +8 # Addresses start at 8 starting from 0
-            registers = read_registers(client, address, 1, slave_id=0xAA)
-            voltages[i] = registers[0] / 10000 if registers else None
-
-        registers = read_registers(client, 36, 2, slave_id=0xAA)
-        v_bat = np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0] if registers else None # outputs the voltage as a float
-
-        #read status
-        registers = read_registers(client, 50, 1, slave_id=0xAA)
-        match registers[0]:
-            case 0x91:
-                status= "Charging"
-            case 0x92:
-                status="Fully-Charged"
-            case 0x93:
-                status = "Discharging"
-            case 0x96:
-                status ="Regeneration"
-            case 0x97:
-                status ="Idle"
-            case 0x9B:
-                status ="Fault"
-            case _ :
-                status = "comm err"
+        return (0," unknown",0)
     
-    except Exception as e:
-        print(f"Error during update: {e}")
-        return (None,None,None)
-    return (v_bat,status,voltages)
+    return (v_bat,status,current)
 
 
-
-# Run updates periodically
+# # Run updates periodically
 # if __name__ == "__main__":
 #     import time
 #     try:
 #         while True:
 #             update()
-#             print(get_bms_data())
+#             # print(get_bms_data())
 #             time.sleep(5)  # 5-second interval
 #     except KeyboardInterrupt:
 #         print("Terminating...")
