@@ -36,15 +36,15 @@ class BMSPublisher(Node):
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
     def timer_callback(self):
-        v_bat,status,current = update()
+        v_bat,status,current,voltages = update()
         msg = BMS()
         msg.v_bat = float(v_bat)
         msg.status = status
-        # msg.voltages = voltages 
+        msg.voltages = [int(element) for element in voltages]
         msg.current = float(current)
         self.publisher_.publish(msg) # Publish the message on the topic
         # self.get_logger().info(([f"Cell {str(i)} Voltage (V)" for i in voltages]) + " | Current (A) " + str(current) + " | Status" + status + " | v_bat " + str(v_bat))
-        self.get_logger().info("Current (A) " + str(current) + " A" + " | Status: " + status + " | v_bat " + str(v_bat) + " V")
+        self.get_logger().info(str([f"Cell {i} Voltage (V)" for i in voltages]) + " | Current (A) " + str(current) + " A" + " | Status: " + status + " | v_bat " + str(v_bat) + " V")
 
 
 def main(args=None):
@@ -133,7 +133,7 @@ def update():
         print(f"Error during update: {e}")
         return (0," unknown",0)
     
-    return (v_bat,status,current)
+    return (v_bat,status,current,voltages)
 
 
 # # Run updates periodically
