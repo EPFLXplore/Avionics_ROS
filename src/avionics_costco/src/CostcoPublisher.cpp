@@ -9,13 +9,13 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
   // Instantiate the publishers
   this->mass_array_ =
-      this->publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
+      this->create_publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
 
-  this->four_in_one_ =
-      this->publisher<custom_msg::msg::FourInOne>(("/EL/four_in_one"), 10);
+  this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>(
+      ("/EL/four_in_one"), 10);
 
-  this->dust_sensor_ =
-      this->publisher<custom_msg::msg::DustSensor>(("/EL/dust_sensor"), 10);
+  this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustSensor>(
+      ("/EL/dust_sensor"), 10);
 
   while (true) {
     // Read data coming from the serial
@@ -31,21 +31,22 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
     switch (id) {
     case CASE_MASS_ARRAY:
       // Call handle
-      CostcoPublisher.mass_array_handle(&data);
+      CostcoPublisher::mass_array_handle(&data);
       break;
 
     case CASE_FOUR_IN_ONE:
       // Call handle
-      CostcoPublisher.four_in_one_handle(&data);
+      CostcoPublisher::four_in_one_handle(&data);
       break;
 
     case CASE_DUST_SENSOR:
       // Call handle
-      CostcoPublisher.dust_sensor_handle(&data);
+      CostcoPublisher::dust_sensor_handle(&data);
       break;
 
     default:
       // The message could not be parsed
+      break;
     }
   }
 }
@@ -56,11 +57,11 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
  */
 CostcoPublisher::~CostcoPublisher() {
   RCLCPP_INFO(this->get_logger(), "Deleting CostcoPublisher");
-  delete this->mass_array;
-  this->mass_array = nullptr;
+  // delete this->mass_array_;
+  // this->mass_array_ = nullptr;
 }
 
-CostcoPublisher::mass_array_handle(int *data) {
+void CostcoPublisher::mass_array_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::MassArray();
 
@@ -79,7 +80,7 @@ CostcoPublisher::mass_array_handle(int *data) {
   mass_array_->publish(data);
 }
 
-CostcoPublisher::four_in_one_handle(int *data) {
+void CostcoPublisher::four_in_one_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::FourInOne();
 
@@ -98,7 +99,7 @@ CostcoPublisher::four_in_one_handle(int *data) {
   four_in_one_->publish(data);
 }
 
-CostcoPublisher::dust_sensor_handle(int *data) {
+void CostcoPublisher::dust_sensor_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::DustSensor();
 

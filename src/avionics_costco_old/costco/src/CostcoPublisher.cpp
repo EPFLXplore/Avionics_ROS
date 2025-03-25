@@ -9,13 +9,13 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
   // Instantiate the publishers
   this->mass_array_ =
-      this->publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
+      this->create_publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
 
-  this->four_in_one_ =
-      this->publisher<custom_msg::msg::FourInOne>(("/EL/four_in_one"), 10);
+  this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>(
+      ("/EL/four_in_one"), 10);
 
-  this->dust_sensor_ =
-      this->publisher<custom_msg::msg::DustSensor>(("/EL/dust_sensor"), 10);
+  this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustSensor>(
+      ("/EL/dust_sensor"), 10);
 
   while (true) {
     // Read data coming from the serial
@@ -60,7 +60,7 @@ CostcoPublisher::~CostcoPublisher() {
   this->mass_array = nullptr;
 }
 
-CostcoPublisher::mass_array_handle(int *data) {
+void CostcoPublisher::mass_array_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::MassArray();
 
@@ -79,7 +79,7 @@ CostcoPublisher::mass_array_handle(int *data) {
   mass_array_->publish(data);
 }
 
-CostcoPublisher::four_in_one_handle(int *data) {
+void CostcoPublisher::four_in_one_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::FourInOne();
 
@@ -98,7 +98,7 @@ CostcoPublisher::four_in_one_handle(int *data) {
   four_in_one_->publish(data);
 }
 
-CostcoPublisher::dust_sensor_handle(int *data) {
+void CostcoPublisher::dust_sensor_handle(int *data) {
   // Initialize the custom_message
   auto msg = custom_msg::msg::DustSensor();
 
@@ -107,7 +107,7 @@ CostcoPublisher::dust_sensor_handle(int *data) {
   // TODO
 
   // Add the data to the custom_message
-  msg.dust_sensor = 1234;
+  msg.dust_msg = 1234;
 
   // Publish the custom message
   dust_sensor_->publish(data);

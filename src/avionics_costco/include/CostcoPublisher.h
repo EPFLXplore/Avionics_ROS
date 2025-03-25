@@ -16,9 +16,9 @@
 #include "rclcpp/rclcpp.hpp"
 
 // Include the custom messages
-#include "custom_messages/msg/dust_sensor.hpp"
-#include "custom_messages/msg/four_in_one.hpp"
-#include "custom_messages/msg/mass_array.hpp"
+#include "custom_msg/msg/dust_sensor.hpp"
+#include "custom_msg/msg/four_in_one.hpp"
+#include "custom_msg/msg/mass_array.hpp"
 
 // Define the case used to call the indivdual cases depending on the message id
 #define CASE_MASS_ARRAY 0
@@ -40,16 +40,16 @@ public:
 private:
   // Create a shared pointer which will be used to reference the publisher in
   // the cpp
-  rclcpp::Publisher<custom_msg::msg::MassArray> *mass_array_;
+  rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_array_;
 
-  rclcpp::Publisher<custom_msg::msg::FourInOne> *four_in_one_;
+  rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
 
-  rclcpp::Publisher<custom_msg::msg::DustSensor> *dust_sensor_;
+  rclcpp::Publisher<custom_msg::msg::DustSensor>::SharedPtr dust_sensor_;
 
   // Declare the different handle functions
-  mass_array_handle(int *data);
-  four_in_one_handle(int *data);
-  dust_sensor_handle(int *data);
+  void mass_array_handle(int *data);
+  void four_in_one_handle(int *data);
+  void dust_sensor_handle(int *data);
 };
 
 #endif /* COSTCOPUBLISHER_H */
