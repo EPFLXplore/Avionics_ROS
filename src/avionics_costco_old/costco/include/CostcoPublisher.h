@@ -15,10 +15,25 @@
 #include "SerialHandler.hpp"
 #include "rclcpp/rclcpp.hpp"
 
+// Include the custom messages
+#include "custom_messages/msg/dust_sensor.hpp"
+#include "custom_messages/msg/four_in_one.hpp"
+#include "custom_messages/msg/mass_array.hpp"
+
+// Define the case used to call the indivdual cases depending on the message id
+#define CASE_MASS_ARRAY 0
+#define CASE_FOUR_IN_ONE 1
+#define CASE_DUST_SENSOR 2
+
 // Create the CostcoPublisher class, it is used to setup the topics
 // (subscriptions and publishers)
 class CostcoPublisher : public rclcpp::Node {
 public:
+  /**
+   * @brief Read the data coming from the serial and call the appropriate handle
+   * depending on the serial message id
+   *
+   */
   CostcoPublisher();
   ~CostcoPublisher();
 
@@ -27,14 +42,14 @@ private:
   // the cpp
   rclcpp::Publisher<custom_msg::msg::MassArray> *mass_array_;
 
-  // Declare the different functions used by CostcoPublisher
+  rclcpp::Publisher<custom_msg::msg::FourInOne> *four_in_one_;
 
-  /**
-   * @brief publish_to_ros: publishes data from serial to ros
-   *
-   * @param data: is the data recieved by serial to be sent via ros
-   */
-  CostcoPublisher::publish_to_ros(custom_msg::msg::MassArray data);
+  rclcpp::Publisher<custom_msg::msg::DustSensor> *dust_sensor_;
+
+  // Declare the different handle functions
+  mass_array_handle(int *data);
+  four_in_one_handle(int *data);
+  dust_sensor_handle(int *data);
 };
 
 #endif /* COSTCOPUBLISHER_H */

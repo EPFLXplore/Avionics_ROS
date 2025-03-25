@@ -1,0 +1,4 @@
+source;share/avionics_costco/local_setup.bash
+source;share/avionics_costco/local_setup.dsv
+source;share/avionics_costco/local_setup.sh
+source;share/avionics_costco/local_setup.zsh
