@@ -8,7 +8,7 @@ def generate_launch_description():
     ld = LaunchDescription()
     logger = LaunchConfiguration("log_level")
 
-    ns = 'CostcoPublisher'
+    ns = 'avionics_costco'
 
     ld.add_action(DeclareLaunchArgument(
         "log_level",
@@ -16,8 +16,8 @@ def generate_launch_description():
         description="Logging level",
     ))
 
-    package_name = 'CostcoPublisher'
-    executable_name = 'CostcoPublisher'
+    package_name = 'avionics_costco'
+    executable_name = 'avionics_costco'
 
     # Launch the mux node with parameters
     Costco_node = Node(

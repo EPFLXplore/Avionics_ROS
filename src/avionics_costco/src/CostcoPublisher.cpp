@@ -7,6 +7,8 @@
 
 CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
+  RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
+
   // Instantiate the publishers
   this->mass_array_ =
       this->create_publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
@@ -48,6 +50,8 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
       // The message could not be parsed
       break;
     }
+
+    std::this_thread::sleep_for(std::chrono::seconds(1));
   }
 }
 
@@ -62,6 +66,7 @@ CostcoPublisher::~CostcoPublisher() {
 }
 
 void CostcoPublisher::mass_array_handle(int *data) {
+  RCLCPP_INFO(this->get_logger(), "In mass_array_handle");
   // Initialize the custom_message
   auto msg = custom_msg::msg::MassArray();
 
@@ -77,10 +82,11 @@ void CostcoPublisher::mass_array_handle(int *data) {
   msg.mass[3] = 4.4;
 
   // Publish the custom message
-  mass_array_->publish(data);
+  mass_array_->publish(msg);
 }
 
 void CostcoPublisher::four_in_one_handle(int *data) {
+  RCLCPP_INFO(this->get_logger(), "In four_in_one_handle");
   // Initialize the custom_message
   auto msg = custom_msg::msg::FourInOne();
 
@@ -96,10 +102,11 @@ void CostcoPublisher::four_in_one_handle(int *data) {
   msg.ph = 6.9; // Noice
 
   // Publish the custom message
-  four_in_one_->publish(data);
+  four_in_one_->publish(msg);
 }
 
 void CostcoPublisher::dust_sensor_handle(int *data) {
+  RCLCPP_INFO(this->get_logger(), "In dust_sensor_handle");
   // Initialize the custom_message
   auto msg = custom_msg::msg::DustSensor();
 
@@ -108,8 +115,8 @@ void CostcoPublisher::dust_sensor_handle(int *data) {
   // TODO
 
   // Add the data to the custom_message
-  msg.dust_sensor = 1234;
+  msg.dust_msg = 1234;
 
   // Publish the custom message
-  dust_sensor_->publish(data);
+  dust_sensor_->publish(msg);
 }

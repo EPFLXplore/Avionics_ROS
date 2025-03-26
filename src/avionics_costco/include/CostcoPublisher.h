@@ -14,6 +14,7 @@
 
 // #include "SerialHandler.hpp"
 #include "rclcpp/rclcpp.hpp"
+#include <thread>
 
 // Include the custom messages
 #include "custom_msg/msg/dust_sensor.hpp"
