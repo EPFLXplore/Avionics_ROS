@@ -19,40 +19,20 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
   this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustSensor>(
       ("/EL/dust_sensor"), 10);
 
-  while (true) {
-    // Read data coming from the serial
-    int data = 9999;
-    // TODO     //SerialHandler::receive(*data);
+  /**
+   * @brief right now the publisher is handled by a timer
+   *
+   * @brief Later on when intergrating with the serial, the timer should be
+   * replaced with a when Serial.available() == true
+   *
+   */
 
-    // Extract the id byte of the message
+  /////// REPLACE THIS WITH SERIAL HANDLER /////////
+  this->timer_ = this->create_wall_timer(
+      std::chrono::milliseconds(1000),
+      std::bind(&CostcoPublisher::timer_callback, this));
 
-    // TODO
-    uint8_t id = 0x0;
-
-    // Select handle based on id
-    switch (id) {
-    case CASE_MASS_ARRAY:
-      // Call handle
-      CostcoPublisher::mass_array_handle(&data);
-      break;
-
-    case CASE_FOUR_IN_ONE:
-      // Call handle
-      CostcoPublisher::four_in_one_handle(&data);
-      break;
-
-    case CASE_DUST_SENSOR:
-      // Call handle
-      CostcoPublisher::dust_sensor_handle(&data);
-      break;
-
-    default:
-      // The message could not be parsed
-      break;
-    }
-
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-  }
+  /////// REPLACE THIS WITH SERIAL HANDLER /////////
 }
 
 /**
@@ -65,6 +45,45 @@ CostcoPublisher::~CostcoPublisher() {
   // this->mass_array_ = nullptr;
 }
 
+/////// REPLACE THIS WITH SERIAL HANDLER /////////
+/**
+ * @brief The idea is to read the frist byte of the message which will call the
+ * appropriate handle, to parse the data and send the message
+ */
+void CostcoPublisher::timer_callback() {
+  // Read data coming from the serial
+  int data = 9999;
+  // TODO     //SerialHandler::receive(*data);
+
+  // Extract the id byte of the message
+
+  // TODO
+  uint8_t id = 0x0;
+
+  // Select handle based on id
+  switch (id) {
+  case CASE_MASS_ARRAY:
+    // Call handle
+    CostcoPublisher::mass_array_handle(&data);
+    break;
+
+  case CASE_FOUR_IN_ONE:
+    // Call handle
+    CostcoPublisher::four_in_one_handle(&data);
+    break;
+
+  case CASE_DUST_SENSOR:
+    // Call handle
+    CostcoPublisher::dust_sensor_handle(&data);
+    break;
+
+  default:
+    // The message could not be parsed
+    break;
+  }
+}
+
+// Handle for the mass array
 void CostcoPublisher::mass_array_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In mass_array_handle");
   // Initialize the custom_message
@@ -85,6 +104,7 @@ void CostcoPublisher::mass_array_handle(int *data) {
   mass_array_->publish(msg);
 }
 
+// Handle for the four in one sensor
 void CostcoPublisher::four_in_one_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In four_in_one_handle");
   // Initialize the custom_message
@@ -105,6 +125,7 @@ void CostcoPublisher::four_in_one_handle(int *data) {
   four_in_one_->publish(msg);
 }
 
+// Handle for the dust sensor
 void CostcoPublisher::dust_sensor_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In dust_sensor_handle");
   // Initialize the custom_message

@@ -41,6 +41,7 @@ endif()
 add_executable(avionics_costco
   src/CostcoPublisher.cpp
   src/CostcoMain.cpp
+  src/CostcoSubscriber.cpp
 )
 
 ament_target_dependencies(

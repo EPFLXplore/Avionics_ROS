@@ -12,7 +12,6 @@
 #ifndef COSTCOPUBLISHER_H
 #define COSTCOPUBLISHER_H
 
-// #include "SerialHandler.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
 
@@ -26,8 +25,8 @@
 #define CASE_FOUR_IN_ONE 1
 #define CASE_DUST_SENSOR 2
 
-// Create the CostcoPublisher class, it is used to setup the topics
-// (subscriptions and publishers)
+// Create the CostcoPublisher class, it is used to setup the topics and the
+// handles
 class CostcoPublisher : public rclcpp::Node {
 public:
   /**
@@ -47,10 +46,22 @@ private:
 
   rclcpp::Publisher<custom_msg::msg::DustSensor>::SharedPtr dust_sensor_;
 
+  // Create a timer to read the data from the serial
+  rclcpp::TimerBase::SharedPtr timer_;
+
   // Declare the different handle functions
+  /**
+   * @brief General handle layout: parse data depending of message type, prepare
+   * fill message with data, publish message
+   *
+   * @param data is the data from the serial
+   */
   void mass_array_handle(int *data);
   void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);
+
+  // Is temporary and will be replaced with the serial handler
+  void timer_callback();
 };
 
 #endif /* COSTCOPUBLISHER_H */

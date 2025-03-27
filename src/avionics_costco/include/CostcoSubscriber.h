@@ -1,0 +1,51 @@
+/**
+ * @file CostcoSubscriber.h
+ * @author Matas Jones
+ * @brief Costco subscriber subscribes to topics generated from the CS and sends
+ * the data to the serial
+ * @version 0.1
+ * @date 2025-03-27
+ *
+ */
+
+#ifndef COSTCO_SUBSCRIBER_H
+#define COSTCO_SUBSCRIBER_H
+
+#include "rclcpp/rclcpp.hpp"
+#include <thread>
+
+// Include the custom messages
+#include "custom_msg/msg/led_message.hpp"
+#include "custom_msg/msg/servo_request.hpp"
+
+// Define the case used to call the indivdual cases depending on the message id
+
+// Create the CostcoPublisher class, it is used to setup the topics
+// (subscriptions and publishers)
+class CostcoSubscriber : public rclcpp::Node {
+public:
+  /**
+   * @brief Read the data coming from the serial and call the appropriate handle
+   * depending on the serial message id
+   *
+   */
+  CostcoSubscriber();
+  ~CostcoSubscriber();
+
+private:
+  // Create a shared pointer which will be used to reference the publisher in
+  // the cpp
+  rclcpp::Subscription<custom_msg::msg::LEDMessage>::SharedPtr led_message_;
+  rclcpp::Subscription<custom_msg::msg::ServoRequest>::SharedPtr servo_request_;
+
+  /**
+   * @brief General layout for handles: reveive ros message, wrap it into a
+   * serial msg, send it to serial
+   *
+   * @param msg The message received from the ros topic
+   */
+  void LEDHandler(const custom_msg::msg::LEDMessage::SharedPtr msg);
+  void ServoHandler(const custom_msg::msg::ServoRequest::SharedPtr msg);
+};
+
+#endif
