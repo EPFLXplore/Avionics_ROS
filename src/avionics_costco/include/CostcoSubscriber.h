@@ -13,7 +13,6 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
-#include "Cosco.hpp"
 
 // Include the custom messages
 #include "custom_msg/msg/led_message.hpp"
@@ -49,8 +48,6 @@ private:
    */
   void LEDHandler(const custom_msg::msg::LEDMessage::SharedPtr msg);
   void ServoRequestHandler(const custom_msg::msg::ServoRequest::SharedPtr msg);
-
-  Cosco *coscoSend = nullptr;
 };
 
 #endif

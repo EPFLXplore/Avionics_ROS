@@ -14,8 +14,6 @@ CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
   // These subscribers are binded with a handle such that when a message is
   // received, the handle is called
 
-  coscoSend = new Cosco();
-
   this->led_message_ = this->create_subscription<custom_msg::msg::LEDMessage>(
       ("/EL/LedCommands"), 10,
         std::bind(&CostcoSubscriber::LEDHandler, this, std::placeholders::_1));
@@ -34,8 +32,6 @@ CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
 CostcoSubscriber::~CostcoSubscriber() {
   RCLCPP_INFO(this->get_logger(), "Deleting CostcoSubscriber");
 
-  delete coscoSend;
-  coscoSend = nullptr;
   // delete this->mass_array_;
   // this->mass_array_ = nullptr;
 }
@@ -59,6 +55,7 @@ void CostcoSubscriber::ServoRequestHandler(const custom_msg::msg::ServoRequest::
   servoRequesteMsg.zero_in = msg->zero_in;
   RCLCPP_INFO(this->get_logger(), "Servo received");
 
-  coscoSend->sendServoRequestPacket(&servoRequesteMsg);
+  Cosco coscoSend;
+  coscoSend.sendServoRequestPacket(&servoRequesteMsg);
   RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
 }
