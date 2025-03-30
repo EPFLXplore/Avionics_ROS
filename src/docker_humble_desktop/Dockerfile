@@ -24,6 +24,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libnewlib-arm-none-eabi \
     gdb-multiarch
 
+RUN apt-get update && apt-get install -y libserialport-dev
+
+
 # RUN git clone https://github.com/STMicroelectronics/STM32CubeH7.git /opt/STM32CubeH7
 # WORKDIR /opt/STM32CubeH7
 # RUN git submodule update --init --recursive

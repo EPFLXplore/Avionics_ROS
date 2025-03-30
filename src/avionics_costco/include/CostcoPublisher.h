@@ -16,7 +16,7 @@
 #include <thread>
 
 // Include the custom messages
-#include "custom_msg/msg/dust_sensor.hpp"
+#include "custom_msg/msg/dust_data.hpp"
 #include "custom_msg/msg/four_in_one.hpp"
 #include "custom_msg/msg/mass_array.hpp"
 
@@ -44,7 +44,7 @@ private:
 
   rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
 
-  rclcpp::Publisher<custom_msg::msg::DustSensor>::SharedPtr dust_sensor_;
+  rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
 
   // Create a timer to read the data from the serial
   rclcpp::TimerBase::SharedPtr timer_;

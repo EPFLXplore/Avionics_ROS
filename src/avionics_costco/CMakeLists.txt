@@ -20,9 +20,17 @@ find_package(ament_cmake REQUIRED)
 find_package(custom_msg REQUIRED)
 find_package(rclcpp REQUIRED)
 
+# Find the serial port library
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SERIALPORT REQUIRED libserialport)
+
+
 include_directories(
   include
+  ${SERIALPORT_INCLUDE_DIRS}
 )
+
+link_directories(${SERIALPORT_LIBRARY_DIRS})
 
 
 if(BUILD_TESTING)
@@ -37,12 +45,23 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+# Specify Arduino libraries you want to link to
+link_directories(
+  ${ARDUINO_CORE_PATH}/lib
+)
+
 # Create the executable
 add_executable(avionics_costco
   src/CostcoPublisher.cpp
   src/CostcoMain.cpp
   src/CostcoSubscriber.cpp
+  src/Cosco.cpp
 )
+
+target_link_libraries(avionics_costco
+  ${SERIALPORT_LIBRARIES}
+)
+
 
 ament_target_dependencies(
   avionics_costco

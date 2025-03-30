@@ -13,6 +13,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
+#include "Cosco.hpp"
 
 // Include the custom messages
 #include "custom_msg/msg/led_message.hpp"
@@ -33,8 +34,10 @@ public:
   ~CostcoSubscriber();
 
 private:
-  // Create a shared pointer which will be used to reference the publisher in
-  // the cpp
+  /**
+   * @brief Create a shared pointer which will be used to reference the publisher in the cpp
+   * 
+   */
   rclcpp::Subscription<custom_msg::msg::LEDMessage>::SharedPtr led_message_;
   rclcpp::Subscription<custom_msg::msg::ServoRequest>::SharedPtr servo_request_;
 
@@ -45,7 +48,9 @@ private:
    * @param msg The message received from the ros topic
    */
   void LEDHandler(const custom_msg::msg::LEDMessage::SharedPtr msg);
-  void ServoHandler(const custom_msg::msg::ServoRequest::SharedPtr msg);
+  void ServoRequestHandler(const custom_msg::msg::ServoRequest::SharedPtr msg);
+
+  Cosco *coscoSend = nullptr;
 };
 
 #endif

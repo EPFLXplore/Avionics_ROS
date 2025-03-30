@@ -25,6 +25,14 @@ int main(int argc, char *argv[]) {
 
   // Spin the executor which conatains all the nodes
   executor.spin();
+
   rclcpp::shutdown();
   return 0;
 }
+
+/**
+ * ros2 topic pub /EL/dust_sensor custom_msg/msg/DustSensor "{id: 0, angle: 60.0, is_zero: 0}" --once
+ * 
+ * 
+ * 
+ */

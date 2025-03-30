@@ -10,15 +10,13 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
   RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
 
   // Instantiate the publishers
-  this->mass_array_ =
-      this->create_publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
+  this->mass_array_ = this->create_publisher<custom_msg::msg::MassArray>(("/EL/MassArray"), 10);
 
-  this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>(
-      ("/EL/four_in_one"), 10);
+  this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>(("/EL/four_in_one"), 10);
 
-  this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustSensor>(
-      ("/EL/dust_sensor"), 10);
+  this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>(("/EL/dust_sensor"), 10);
 
+  // this->
   /**
    * @brief right now the publisher is handled by a timer
    *
@@ -94,14 +92,14 @@ void CostcoPublisher::mass_array_handle(int *data) {
   // TODO
 
   // Add the data to the custom_message
-  msg.id = 10001;
-  msg.mass[0] = 1.1;
-  msg.mass[1] = 2.2;
-  msg.mass[2] = 3.3;
-  msg.mass[3] = 4.4;
+  // msg.id = 10001;
+  // msg.mass[0] = 1.1;
+  // msg.mass[1] = 2.2;
+  // msg.mass[2] = 3.3;
+  // msg.mass[3] = 4.4;
 
-  // Publish the custom message
-  mass_array_->publish(msg);
+  // // Publish the custom message
+  // mass_array_->publish(msg);
 }
 
 // Handle for the four in one sensor
@@ -129,15 +127,15 @@ void CostcoPublisher::four_in_one_handle(int *data) {
 void CostcoPublisher::dust_sensor_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In dust_sensor_handle");
   // Initialize the custom_message
-  auto msg = custom_msg::msg::DustSensor();
+  auto msg = custom_msg::msg::DustData();
 
   // Parse the data based on the message struct
 
   // TODO
 
   // Add the data to the custom_message
-  msg.dust_msg = 1234;
+  // msg.dust_msg = 1234;
 
   // Publish the custom message
-  dust_sensor_->publish(msg);
+  // dust_sensor_->publish(msg);
 }
