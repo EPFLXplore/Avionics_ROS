@@ -26,6 +26,8 @@ struct sp_port *port;
 //     break;                                                                      \
 // } while (0)
 
+struct sp_port *port;
+
 Cosco::Cosco()
 {
     // Serial.begin(115200);
