@@ -7,7 +7,24 @@
 #include <functional>
 #include <unordered_map>
 
+// below is the unique USB ID of the ESP32 when it is connected to port 0 of raspberry pi
 const char* portname = "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0";
+
+/*
+    if the esp32 is the only device connected, this portname should work just fine:
+    const char* portname = "/dev/ttyUSB0";
+    or for macOS:
+    const char* portname = "/dev/tty.usbserial-0001"
+*/
+
+
+/*
+    the section below is critical for packet synchronization
+    #pragma pack(push, 1) ensures no padding between packets, which is critical
+    in a serial bus. This padding setting is "pushed" at compile time in an internal
+    stack and popped at the end at the #pragma pack(pop) directive. Please add all
+    packets inside this section, or very nasty out of sync packet bugs might happen
+*/
 
 #pragma pack(push, 1)
 struct DustData {
@@ -26,11 +43,15 @@ struct MassData {
 const uint8_t MassData_ID = 1;
 const uint8_t DustData_ID = 15;
 
-DustData latestDustData;
-MassData latestMassData;
+DustData latest_dust_data;
+MassData latest_mass_data;
 
-using Callback = std::function<void(const void*)>;
-std::unordered_map<uint8_t, std::pair<size_t, Callback>> packetHandlers;
+/*
+    the type below maps packet ID -> (packet size, callback function)
+    allows dynamically dispatching to the correct handler
+*/
+using callback_t = std::function<void(const void*)>;
+std::unordered_map<uint8_t, std::pair<size_t, callback_t>> packet_handlers;
 
 bool read_fully(int fd, void* buffer, size_t size) {
     uint8_t* ptr = static_cast<uint8_t*>(buffer);
@@ -48,7 +69,10 @@ bool read_fully(int fd, void* buffer, size_t size) {
 
 void dust_callback(const void* ptr) {
     const DustData* data = reinterpret_cast<const DustData*>(ptr);
-    latestDustData = *data;
+    latest_dust_data = *data;
+
+    // data reading over, below is example of processing. note that reinterpret_cast<uint16_t*>(&data)[i]
+    // makes data[i] be in human-readable form
     std::cout << "[DustData] ";
     for (int i = 0; i < 12; ++i)
         std::cout << reinterpret_cast<const uint16_t*>(data)[i] << " ";
@@ -57,7 +81,9 @@ void dust_callback(const void* ptr) {
 
 void mass_callback(const void* ptr) {
     const MassData* data = reinterpret_cast<const MassData*>(ptr);
-    latestMassData = *data;
+    latest_mass_data = *data;
+
+    // again, data reading over, same comment as above with DustData
     std::cout << "[MassData] "
               << "CH1: " << data->mass[0] << "\t"
               << "CH2: " << data->mass[1] << "\t"
@@ -65,6 +91,10 @@ void mass_callback(const void* ptr) {
               << "CH4: " << data->mass[3] << "\n";
 }
 
+/*
+    the function below applies the raw serial settings.
+    please do not touch unless something goes wrong/you know what you're doing.
+*/
 void setup_serial(int fd) {
     termios options;
     tcgetattr(fd, &options);
@@ -88,32 +118,32 @@ int main() {
     setup_serial(fd);
 
     // Register packet handlers
-    packetHandlers[DustData_ID] = { sizeof(DustData), dust_callback };
-    packetHandlers[MassData_ID] = { sizeof(MassData), mass_callback };
+    packet_handlers[DustData_ID] = { sizeof(DustData), dust_callback };
+    packet_handlers[MassData_ID] = { sizeof(MassData), mass_callback };
 
     std::cout << "[HOST] Listening for packets\n";
 
     while (true) {
-        uint8_t packetID;
-        if (read(fd, &packetID, 1) != 1) {
+        uint8_t packet_id;
+        if (read(fd, &packet_id, 1) != 1) {
             usleep(1000);
             continue;
         }
 
-        auto it = packetHandlers.find(packetID);
-        if (it != packetHandlers.end()) {
+        auto it = packet_handlers.find(packet_id);
+        if (it != packet_handlers.end()) {
             size_t size = it->second.first;
-            Callback& cb = it->second.second;
+            callback_t& cb = it->second.second;
             std::vector<uint8_t> buffer(size);
 
             if (!read_fully(fd, buffer.data(), size)) {
-                std::cerr << "Incomplete packet for ID " << (int)packetID << "\n";
+                std::cerr << "Incomplete packet for ID " << (int)packet_id << "\n";
                 continue;
             }
             cb(buffer.data());
         } else {
             std::cerr << "[HOST] Unknown packet ID: 0x"
-                      << std::hex << (int)packetID << std::dec << "\n";
+                      << std::hex << (int)packet_id << std::dec << "\n";
         }
     }
 
