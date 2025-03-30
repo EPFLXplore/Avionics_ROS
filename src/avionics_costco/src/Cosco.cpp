@@ -43,7 +43,6 @@ Cosco::Cosco()
         return;
     }
 
-    // Set serial port options (baud rate, bits, stop bits, etc.)
     sp_set_baudrate(port, 115200);
     sp_set_bits(port, 8);
     sp_set_parity(port, SP_PARITY_NONE);
