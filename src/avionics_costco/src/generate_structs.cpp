@@ -61,6 +61,7 @@ void generate_message_file(std::string folderPath, std::string outputFilename){
     outfile << "#define PACKET_DEFINITION_H\n\n";
     outfile << "#include <iostream>\n";
     outfile << "#include <packet_id.hpp>\n\n";
+    outfile << "#pragma pack(push, 1)\n";
     
     // Iterate through all files in the folder.
     for (const auto &entry : std::filesystem::directory_iterator(folderPath)) {
@@ -126,6 +127,7 @@ void generate_message_file(std::string folderPath, std::string outputFilename){
             std::cout << "Processed file: " << entry.path() << std::endl;
         }
     }
+    outfile << "pragma pack(pop)\n";
     outfile << "#endif /* PACKET_DEFINITION_H */";
     outfile.close();
     std::cout << "Generated aggregated header file: " << outputFilename << std::endl;

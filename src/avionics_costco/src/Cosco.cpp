@@ -17,6 +17,8 @@
 #include <stdint.h>
 #include <string.h>
 
+const char* portname = "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0";
+
 // struct sp_port *port;
 
 // // Macro de Ilyas
@@ -56,9 +58,9 @@ Cosco::Cosco()
     // sp_set_flowcontrol(port, SP_FLOWCONTROL_NONE);
 
     // printf("Serial launched\n");
-    fd = open("/dev/ttyUSB0", O_RDWR | O_NOCTTY | O_NONBLOCK);
+    fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1) {
-        std::cerr << "[Cosco] Failed to open serial port\n";
+        perror("[Cosco] Failed to open serial port");
         return;
     }
     fcntl(fd, F_SETFL, 0);

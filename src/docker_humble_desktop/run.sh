@@ -40,6 +40,9 @@ docker run -it \
     --name elec_humble_desktop \
     --rm \
     --privileged \
+	--device=/dev/ttyUSB0 \
+	--group-add dialout \
+	--user $(id -u):$(id -g) \
     --net=host \
     -e DISPLAY=unix$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
@@ -51,4 +54,6 @@ docker run -it \
     -v $parent_dir:/home/xplore/dev_ws/src \
     -v elec_humble_desktop_home_volume:/home/xplore \
     ghcr.io/epflxplore/elec:humble-desktop \
-    /bin/bash -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; /bin/bash"
+
+	/bin/bash -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME && exec sg dialout 'su - $USERNAME'"
+

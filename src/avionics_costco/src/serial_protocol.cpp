@@ -84,14 +84,15 @@ bool try_read_packet(int fd) {
     return true;
 }
 
-void mass_array_cb(const void* msg) {
-    auto data = static_cast<const MassArray*>(msg);
+void mass_array_cb(const void* ptr) {
+    const MassArray* data = reinterpret_cast<const MassArray*>(ptr);
     custom_msg::msg::MassArray ros_msg;
 
     ros_msg.id = data->id;
+    ros_msg.mass = data->mass;
 
-    for (int i = 0; i < 4; ++i) {
-        ros_msg.mass[i] = data->mass[i];
+    if (mass_pub) {
+        mass_pub->publish(ros_msg);
     }
 }
 

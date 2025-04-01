@@ -73,7 +73,7 @@ struct MassConfigResponsePacket {
 
 struct MassArray {
     uint16_t id;
-    float mass[4];
+    float mass;
 };
 
 struct NPK {
