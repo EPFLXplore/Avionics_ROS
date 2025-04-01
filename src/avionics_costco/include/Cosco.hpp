@@ -7,9 +7,7 @@
 
 #include "packet_definition.hpp"
 #include "packet_id.hpp"
-#include <functional>    // For std::function
-#include <unordered_map> // For std::unordered_map
-
+#include "serial_protocol.hpp"
 
 
 class Cosco {
@@ -90,7 +88,10 @@ public:
      * @param responsePacket 
      * @return null
      */    
-    void receive(void* packet);
+    void receive();
+
+private:
+    int fd;
 };
 
 #endif /* COSCO_HPP */

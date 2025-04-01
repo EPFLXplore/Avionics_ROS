@@ -23,9 +23,9 @@
 #define LED_ID 11
 #define LEDResponse_ID 12
 
-// Dust packets
-#define DustData_ID (15)
-
 // FourInOne and NPK packets
 #define FourInOne_ID 13
 #define NPK_ID 14
+
+// Dust packets
+#define DustData_ID 15

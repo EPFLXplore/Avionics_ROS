@@ -9,6 +9,8 @@
 #include <iostream>
 #include <packet_id.hpp>
 
+#pragma pack(push, 1)
+
 struct LEDMessage {
     uint8_t low;
     uint8_t high;
@@ -71,7 +73,7 @@ struct MassConfigResponsePacket {
 
 struct MassArray {
     uint16_t id;
-    float mass;
+    float mass[4];
 };
 
 struct NPK {
@@ -107,5 +109,7 @@ struct MassConfigRequestPacket {
     uint16_t id;
     bool req_config;
 };
+
+#pragma pack(pop)
 
 #endif /* PACKET_DEFINITION_H */
