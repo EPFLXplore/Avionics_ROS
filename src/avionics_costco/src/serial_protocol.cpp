@@ -10,13 +10,11 @@ rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
 rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 
-std::unordered_map<uint8_t, std::pair<size_t, callback_t>> packet_registry;
-
 
 MassConfigRequestPacket latest_mass_config_request;
 MassConfigResponsePacket latest_mass_config_response;
 
-static std::unordered_map<uint8_t, std::pair<size_t, callback_t>> handlers;
+std::unordered_map<uint8_t, std::pair<size_t, callback_t>> handlers;
 
 void mass_config_request_callback(const void* ptr) {
     const MassConfigRequestPacket* data = reinterpret_cast<const MassConfigRequestPacket*>(ptr);
@@ -116,23 +114,34 @@ void dust_cb(const void* ptr) {
     dust_pub->publish(ros_msg);
 }
 
+void servo_request_cb(const void* ptr) {
+    const ServoRequest* data = reinterpret_cast<const ServoRequest*>(ptr);
+    std::cout << "[ServoRequest] id=" << data->id
+              << " increment=" << static_cast<unsigned>(data->increment)
+              << " zero_in=" << std::boolalpha << data->zero_in << std::endl;
+}
+
+
 void register_cosco_callbacks() {
     register_packet(MassData_ID, sizeof(MassArray), mass_array_cb);
     register_packet(FourInOne_ID, sizeof(FourInOne), fourinone_cb);
     register_packet(DustData_ID, sizeof(DustData), dust_cb);
+    register_packet(ServoConfigRequest_ID, sizeof(ServoRequest), servo_request_cb);
 }
 
 void process_packets(int fd) {
     uint8_t packet_id;
     if (read(fd, &packet_id, 1) == 1) {
-        auto it = packet_registry.find(packet_id);
-        if (it != packet_registry.end()) {
+        auto it = handlers.find(packet_id);
+        if (it != handlers.end()) {
             size_t size = it->second.first;
             callback_t& cb = it->second.second;
             std::vector<uint8_t> buffer(size);
             if (read_fully(fd, buffer.data(), size)) {
                 cb(buffer.data());
             }
+        } else {
+            std::cerr << "[HOST] Unknown packet ID: 0x" << std::hex << (int)packet_id << " — skipping\n" << std::dec;
         }
     }
 }

@@ -15,15 +15,6 @@
 #include <custom_msg/msg/four_in_one.hpp>
 #include <custom_msg/msg/dust_data.hpp>
 
-// #define MassConfigRequest_ID 2
-// #define MassConfigResponse_ID 5
-
-// extern MassConfigRequestPacket latest_mass_config_request;
-// extern MassConfigResponsePacket latest_mass_config_response;
-
-// void mass_config_request_callback(const void* ptr);
-// void mass_config_response_callback(const void* ptr);
-
 extern rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
 extern rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
@@ -32,10 +23,10 @@ extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 void setup_serial(int fd);
 
 using callback_t = std::function<void(const void*)>;
-extern std::unordered_map<uint8_t, std::pair<size_t, callback_t>> packet_registry;
+extern std::unordered_map<uint8_t, std::pair<size_t, callback_t>> handlers;
 
 inline void register_packet(uint8_t id, size_t size, callback_t cb) {
-    packet_registry[id] = std::make_pair(size, cb);
+    handlers[id] = std::make_pair(size, cb);
 }
 inline void register_packet_handler(uint8_t id, size_t size, callback_t cb);
 

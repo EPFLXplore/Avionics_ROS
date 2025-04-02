@@ -66,94 +66,17 @@ void CostcoPublisher::timer_callback() {
   cosco_.receive();
 }
 
-// void CostcoPublisher::timer_callback() {
-//   // Read data coming from the serial
-//   int data = 9999;
-//   // TODO     //SerialHandler::receive(*data);
-
-//   // Extract the id byte of the message
-
-//   // TODO
-//   uint8_t id = 0x0;
-
-//   // Select handle based on id
-//   switch (id) {
-//   case CASE_MASS_ARRAY:
-//     // Call handle
-//     CostcoPublisher::mass_array_handle(&data);
-//     break;
-
-//   case CASE_FOUR_IN_ONE:
-//     // Call handle
-//     CostcoPublisher::four_in_one_handle(&data);
-//     break;
-
-//   case CASE_DUST_SENSOR:
-//     // Call handle
-//     CostcoPublisher::dust_sensor_handle(&data);
-//     break;
-
-//   default:
-//     // The message could not be parsed
-//     break;
-//   }
-// }
-
 // Handle for the mass array
 void CostcoPublisher::mass_array_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In mass_array_handle");
-  // Initialize the custom_message
-  // auto msg = custom_msg::msg::MassArray();
-
-  // Parse the data based on the message struct
-
-  // TODO
-
-  // Add the data to the custom_message
-  // msg.id = 10001;
-  // msg.mass[0] = 1.1;
-  // msg.mass[1] = 2.2;
-  // msg.mass[2] = 3.3;
-  // msg.mass[3] = 4.4;
-
-  // // Publish the custom message
-  // mass_array_->publish(msg);
 }
 
 // Handle for the four in one sensor
 void CostcoPublisher::four_in_one_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In four_in_one_handle");
-  // Initialize the custom_message
-  // auto msg = custom_msg::msg::FourInOne();
-
-  // // Parse the data based on the message struct
-
-  // // TODO
-
-  // // Add the data to the custom_message
-  // msg.id = 10110;
-  // msg.temperature = 1.3;
-  // msg.moisture = 3.14;
-  // msg.conductivity = 5.21;
-  // msg.ph = 6.9; // Noice
-
-  // // Publish the custom message
-  // four_in_one_->publish(msg);
 }
 
 // Handle for the dust sensor
 void CostcoPublisher::dust_sensor_handle(int *data) {
   RCLCPP_INFO(this->get_logger(), "In dust_sensor_handle");
-  // Initialize the custom_message
-  // auto msg = custom_msg::msg::DustData();
-
-  // Parse the data based on the message struct
-
-  // TODO
-
-  // Add the data to the custom_message
-  // msg.dust_msg = 1234;
-
-  // Publish the custom message
-  // dust_sensor_->publish(msg);
 }

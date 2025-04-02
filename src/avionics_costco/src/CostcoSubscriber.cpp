@@ -31,9 +31,6 @@ CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
  */
 CostcoSubscriber::~CostcoSubscriber() {
   RCLCPP_INFO(this->get_logger(), "Deleting CostcoSubscriber");
-
-  // delete this->mass_array_;
-  // this->mass_array_ = nullptr;
 }
 
 // Handle for the LED message
@@ -43,8 +40,6 @@ void CostcoSubscriber::LEDHandler(const custom_msg::msg::LEDMessage::SharedPtr m
   uint8_t system = msg->system;
   uint8_t mode = msg->mode;
   RCLCPP_INFO(this->get_logger(), "LED msg received");
-
-  // TODO: Send to serial
 }
 
 // Handle for the Servo message
