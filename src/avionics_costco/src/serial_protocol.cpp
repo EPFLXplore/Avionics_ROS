@@ -5,36 +5,22 @@
 #include <fcntl.h>
 #include <unordered_map>
 
-
+// bound at runtime in CoscoPublisher
 rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
 rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 
-
+// most recent config data 
 MassConfigRequestPacket latest_mass_config_request;
 MassConfigResponsePacket latest_mass_config_response;
 
+// internal packet registry
 std::unordered_map<uint8_t, std::pair<size_t, callback_t>> handlers;
 
-void mass_config_request_callback(const void* ptr) {
-    const MassConfigRequestPacket* data = reinterpret_cast<const MassConfigRequestPacket*>(ptr);
-    latest_mass_config_request = *data;
-
-    std::cout << "[MassConfigRequest] id=" << data->id
-              << " req_config=" << std::boolalpha << data->req_config << "\n";
-}
-
-void mass_config_response_callback(const void* ptr) {
-    const MassConfigResponsePacket* data = reinterpret_cast<const MassConfigResponsePacket*>(ptr);
-    latest_mass_config_response = *data;
-
-    std::cout << "[MassConfigResponse] id=" << data->id
-              << " offset=" << data->offset
-              << " scale=" << data->scale
-              << " offset_set=" << std::boolalpha << data->offset_set
-              << " scale_set=" << data->scale_set << "\n";
-}
-
+/*
+    the function below applies the raw serial settings.
+    please do not touch unless something goes wrong/you know what you're doing.
+*/
 void setup_serial(int fd) {
     termios options;
     tcgetattr(fd, &options);
@@ -46,10 +32,6 @@ void setup_serial(int fd) {
     options.c_iflag &= ~(IXON | IXOFF | IXANY);
     options.c_oflag &= ~OPOST;
     tcsetattr(fd, TCSANOW, &options);
-}
-
-void register_packet_handler(uint8_t id, size_t size, callback_t cb) {
-    handlers[id] = { size, cb };
 }
 
 bool try_read_packet(int fd) {
@@ -81,6 +63,29 @@ bool try_read_packet(int fd) {
     cb(buffer.data());
     return true;
 }
+
+/*
+    pre-packet callbacks
+*/
+void mass_config_request_callback(const void* ptr) {
+    const MassConfigRequestPacket* data = reinterpret_cast<const MassConfigRequestPacket*>(ptr);
+    latest_mass_config_request = *data;
+
+    std::cout << "[MassConfigRequest] id=" << data->id
+              << " req_config=" << std::boolalpha << data->req_config << "\n";
+}
+
+void mass_config_response_callback(const void* ptr) {
+    const MassConfigResponsePacket* data = reinterpret_cast<const MassConfigResponsePacket*>(ptr);
+    latest_mass_config_response = *data;
+
+    std::cout << "[MassConfigResponse] id=" << data->id
+              << " offset=" << data->offset
+              << " scale=" << data->scale
+              << " offset_set=" << std::boolalpha << data->offset_set
+              << " scale_set=" << data->scale_set << "\n";
+}
+
 
 void mass_array_cb(const void* ptr) {
     const MassArray* data = reinterpret_cast<const MassArray*>(ptr);
@@ -121,7 +126,7 @@ void servo_request_cb(const void* ptr) {
               << " zero_in=" << std::boolalpha << data->zero_in << std::endl;
 }
 
-
+// registration + processing
 void register_cosco_callbacks() {
     register_packet(MassData_ID, sizeof(MassArray), mass_array_cb);
     register_packet(FourInOne_ID, sizeof(FourInOne), fourinone_cb);
