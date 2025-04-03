@@ -1,3 +1,8 @@
+/**
+ * @file CoscoPublisher.cpp
+ * @author Ilyas Asmouki
+*/
+
 #include "CostcoPublisher.h"
 #include "Cosco.hpp"
 #include "serial_protocol.hpp"
@@ -39,12 +44,9 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
    *
    */
 
-  /////// REPLACE THIS WITH SERIAL HANDLER /////////
   this->timer_ = this->create_wall_timer(
     std::chrono::milliseconds(20),
     std::bind(&CostcoPublisher::timer_callback, this));
-
-  /////// REPLACE THIS WITH SERIAL HANDLER /////////
 }
 
 /**
