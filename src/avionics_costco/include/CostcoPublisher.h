@@ -14,6 +14,7 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
+#include <atomic>
 
 // Include the custom messages
 #include "custom_msg/msg/dust_data.hpp"
@@ -48,6 +49,9 @@ private:
 
   // Create a timer to read the data from the serial
   rclcpp::TimerBase::SharedPtr timer_;
+
+  std::thread serial_thread_;
+  std::atomic<bool> running_;
 
   // Declare the different handle functions
   /**

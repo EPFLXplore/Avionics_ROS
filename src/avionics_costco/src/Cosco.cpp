@@ -18,8 +18,7 @@
 
 const char* portname = "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0";
 
-Cosco::Cosco()
-{
+Cosco::Cosco() {
     fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1) {
         perror("[Cosco] Failed to open serial port");
@@ -30,44 +29,41 @@ Cosco::Cosco()
     std::cout << "[Cosco] Serial port opened\n";
 }
 
-Cosco::~Cosco()
-{
+Cosco::~Cosco() {
     if (fd != -1) {
         close(fd);
     }
 }
 
-void Cosco::sendMassConfigPacket(MassConfigPacket *configPacket)
-{
+void Cosco::sendMassConfigPacket(MassConfigPacket *configPacket) {
     send_packet(fd, MassConfig_ID, *configPacket);
 }
 
-void Cosco::sendMassConfigRequestPacket(MassConfigRequestPacket *requestPacket)
-{
+void Cosco::sendMassConfigRequestPacket(MassConfigRequestPacket *requestPacket) {
     send_packet(fd, MassConfigRequest_ID, *requestPacket);
 }
 
-void Cosco::sendMassConfigResponsePacket(MassConfigResponsePacket *responsePacket)
-{
+void Cosco::sendMassConfigResponsePacket(MassConfigResponsePacket *responsePacket) {
     send_packet(fd, MassConfigResponse_ID, *responsePacket);
 }
 
-void Cosco::sendMassDataPacket(MassArray *massPacket)
-{
+void Cosco::sendMassDataPacket(MassArray *massPacket) {
     send_packet(fd, MassData_ID, *massPacket);
 }
 
-void Cosco::sendServoRequestPacket(ServoRequest* requestPacket)
-{
+void Cosco::sendServoRequestPacket(ServoRequest* requestPacket) {
     send_packet(fd, ServoConfigRequest_ID, *requestPacket);
 }
 
-void Cosco::sendServoResponsePacket(ServoResponse* responsePacket)
-{
+void Cosco::sendServoResponsePacket(ServoResponse* responsePacket) {
     send_packet(fd, ServoResponse_ID, *responsePacket);
 }
 
-void Cosco::receive()
-{
+int Cosco::get_fd() const {
+    return this->fd;
+}
+  
+
+void Cosco::receive() {
     process_packets(fd);
 }

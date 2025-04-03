@@ -79,6 +79,7 @@ public:
      */
     void sendDustDataPacket(DustData *dataPacket);
 
+    int get_fd() const;
 
     /**
      * @brief functions that receive commands  

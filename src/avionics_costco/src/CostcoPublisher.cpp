@@ -23,30 +23,48 @@ Cosco cosco_;
 
 CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
-  RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
+    RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
 
-  // Instantiate the publishers
-  this->mass_array_ = this->create_publisher<custom_msg::msg::MassArray>("/EL/MassArray", 10);
-  this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>("/EL/four_in_one", 10);
-  this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);
+    // Instantiate the publishers
+    this->mass_array_ = this->create_publisher<custom_msg::msg::MassArray>("/EL/MassArray", 10);
+    this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>("/EL/four_in_one", 10);
+    this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);
 
-  mass_pub = this->mass_array_;
-  fourinone_pub = this->four_in_one_;
-  dust_pub = this->dust_sensor_;
+    mass_pub = this->mass_array_;
+    fourinone_pub = this->four_in_one_;
+    dust_pub = this->dust_sensor_;
 
-  register_cosco_callbacks();
+    register_cosco_callbacks();
 
-  /**
-   * @brief right now the publisher is handled by a timer
-   *
-   * @brief Later on when intergrating with the serial, the timer should be
-   * replaced with a when Serial.available() == true
-   *
-   */
+    /*
+        this below ensures the serial thread is safely called when
+        serial data is available.
+        it replaces the old timer_callback() that was bound to the 
+        publisher
+    */
+    running_ = true;
+    serial_thread_ = std::thread([this]() {
+        int fd = cosco_.get_fd();
+        if (fd < 0) {
+            RCLCPP_ERROR(this->get_logger(), "Invalid serial FD");
+            return;
+        }
 
-  this->timer_ = this->create_wall_timer(
-    std::chrono::milliseconds(20),
-    std::bind(&CostcoPublisher::timer_callback, this));
+        while (running_) {
+            fd_set read_fds;
+            FD_ZERO(&read_fds);
+            FD_SET(fd, &read_fds);
+
+            struct timeval timeout;
+            timeout.tv_sec = 0;
+            timeout.tv_usec = 20000;  // 20ms, similar to old timer
+
+            int ret = select(fd + 1, &read_fds, NULL, NULL, &timeout);
+            if (ret > 0 && FD_ISSET(fd, &read_fds)) {
+                cosco_.receive();
+            }
+        }
+    });
 }
 
 /**
@@ -55,18 +73,16 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
  */
 CostcoPublisher::~CostcoPublisher() {
   RCLCPP_INFO(this->get_logger(), "Deleting CostcoPublisher");
-  // delete this->mass_array_;
-  // this->mass_array_ = nullptr;
+  running_ = false;
+  if (serial_thread_.joinable()) {
+    serial_thread_.join();
+  }
 }
 
-/////// REPLACE THIS WITH SERIAL HANDLER /////////
 /**
  * @brief The idea is to read the frist byte of the message which will call the
  * appropriate handle, to parse the data and send the message
  */
-void CostcoPublisher::timer_callback() {
-  cosco_.receive();
-}
 
 // Handle for the mass array
 void CostcoPublisher::mass_array_handle(int *data) {

@@ -1,3 +1,8 @@
+/**
+ * @file serial_protocol.cpp
+ * @author Ilyas Asmouki
+*/
+
 #include "serial_protocol.hpp"
 #include <iostream>
 #include <termios.h>
