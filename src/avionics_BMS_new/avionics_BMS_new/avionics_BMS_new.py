@@ -31,7 +31,7 @@ class BMSPublisher(Node):
 
     def __init__(self):
         super().__init__('BMS_publisher') # Super init calls the node class's constructor
-        self.publisher_ = self.create_publisher(BMS, 'BMS_topic', 10) # Create a publisher on the topic BMS_topic
+        self.publisher_ = self.create_publisher(BMS, '/EL/bms_topic', 10) # Create a publisher on the topic BMS_topic
         timer_period = 2  # seconds
         self.timer = self.create_timer(timer_period, self.timer_callback)
 
@@ -114,8 +114,6 @@ def update():
             case _ :
                 status = "comm err"
 
-        
-
         print("vbat: ", type(v_bat))
         # Log data to terminal
         print(f"{sample_time} | " + " | ".join([f"{voltages[i]:.3f}" for i in cells]) +
@@ -134,16 +132,3 @@ def update():
         return (0," unknown",0)
     
     return (v_bat,status,current,voltages)
-
-
-# # Run updates periodically
-# if __name__ == "__main__":
-#     import time
-#     try:
-#         while True:
-#             update()
-#             # print(get_bms_data())
-#             time.sleep(5)  # 5-second interval
-#     except KeyboardInterrupt:
-#         print("Terminating...")
-#         client.close()
