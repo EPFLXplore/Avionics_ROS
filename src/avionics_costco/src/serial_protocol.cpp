@@ -150,7 +150,7 @@ void servo_request_cb(const void* ptr) {
 void servo_response_cb(const void* ptr) {
     const ServoResponse* data = reinterpret_cast<const ServoResponse*>(ptr);
     std::cout << "[ServoResponse] id=" << data->id
-              << " angle=" << static_cast<unsigned>(data->angle)
+              << " angle=" << static_cast<int32_t>(data->angle)
               << " success=" << std::boolalpha << data->success << std::endl;
 }
 
