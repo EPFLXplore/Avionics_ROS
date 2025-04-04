@@ -2,7 +2,10 @@
 log/
 install/
 libs/
-Build/
+**/build/**
+**/log/**
+**/install/**
+
 # Colcon custom files
 COLCON_IGNORE
 AMENT_IGNORE
