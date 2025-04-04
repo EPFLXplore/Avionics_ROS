@@ -117,6 +117,22 @@ void fourinone_cb(const void* ptr) {
 }
 
 void dust_cb(const void* ptr) {
+    // const DustData* data = reinterpret_cast<const DustData*>(ptr);
+
+    // std::cout << "[DustData] pm1_0_std=" << data->pm1_0_std
+    //           << " pm2_5_std=" << data->pm2_5_std
+    //           << " pm10__std=" << data->pm10_std
+    //           << " pm1_0_atm=" << data->pm1_0_atm
+    //           << " pm2_5_atm=" << data->pm2_5_atm
+    //           << " pm10__atm=" << data->pm10_atm
+    //           << " num_particles_0_3=" << data->num_particles_0_3
+    //           << " num_particles_0_5=" << data->num_particles_0_5
+    //           << " num_particles_1_0=" << data->num_particles_1_0
+    //           << " num_particles_2_5=" << data->num_particles_2_5
+    //           << " num_particles_5_0=" << data->num_particles_5_0
+    //           << " num_particles_10_=" << data->num_particles_10
+    //           << std::endl;
+
     auto ros_msg = custom_msg::msg::DustData();
     const auto* data = reinterpret_cast<const DustData*>(ptr);
 
@@ -131,12 +147,20 @@ void servo_request_cb(const void* ptr) {
               << " zero_in=" << std::boolalpha << data->zero_in << std::endl;
 }
 
+void servo_response_cb(const void* ptr) {
+    const ServoResponse* data = reinterpret_cast<const ServoResponse*>(ptr);
+    std::cout << "[ServoResponse] id=" << data->id
+              << " angle=" << static_cast<unsigned>(data->angle)
+              << " success=" << std::boolalpha << data->success << std::endl;
+}
+
 // registration + processing
 void register_cosco_callbacks() {
     register_packet(MassData_ID, sizeof(MassArray), mass_array_cb);
     register_packet(FourInOne_ID, sizeof(FourInOne), fourinone_cb);
     register_packet(DustData_ID, sizeof(DustData), dust_cb);
     register_packet(ServoConfigRequest_ID, sizeof(ServoRequest), servo_request_cb);
+    register_packet(ServoConfigResponse_ID, sizeof(ServoResponse), servo_response_cb);
 }
 
 void process_packets(int fd) {

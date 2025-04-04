@@ -51,7 +51,7 @@ struct FourInOne {
 
 struct ServoResponse {
     uint16_t id;
-    float angle;
+    int32_t angle;
     bool success;
 };
 
@@ -97,7 +97,7 @@ struct MassPacket {
 
 struct ServoRequest {
     uint16_t id;
-    uint8_t increment;
+    int32_t increment;
     bool zero_in;
 };
 

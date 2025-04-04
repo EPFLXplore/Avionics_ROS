@@ -63,9 +63,6 @@ private:
   void mass_array_handle(int *data);
   void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);
-
-  // Is temporary and will be replaced with the serial handler
-  void timer_callback();
 };
 
 #endif /* COSTCOPUBLISHER_H */
