@@ -91,7 +91,6 @@ void mass_config_response_callback(const void* ptr) {
               << " scale_set=" << data->scale_set << "\n";
 }
 
-
 void mass_array_cb(const void* ptr) {
     const MassArray* data = reinterpret_cast<const MassArray*>(ptr);
     custom_msg::msg::MassArray ros_msg;
@@ -117,27 +116,27 @@ void fourinone_cb(const void* ptr) {
 }
 
 void dust_cb(const void* ptr) {
-    // const DustData* data = reinterpret_cast<const DustData*>(ptr);
+    const DustData* data = reinterpret_cast<const DustData*>(ptr);
 
-    // std::cout << "[DustData] pm1_0_std=" << data->pm1_0_std
-    //           << " pm2_5_std=" << data->pm2_5_std
-    //           << " pm10__std=" << data->pm10_std
-    //           << " pm1_0_atm=" << data->pm1_0_atm
-    //           << " pm2_5_atm=" << data->pm2_5_atm
-    //           << " pm10__atm=" << data->pm10_atm
-    //           << " num_particles_0_3=" << data->num_particles_0_3
-    //           << " num_particles_0_5=" << data->num_particles_0_5
-    //           << " num_particles_1_0=" << data->num_particles_1_0
-    //           << " num_particles_2_5=" << data->num_particles_2_5
-    //           << " num_particles_5_0=" << data->num_particles_5_0
-    //           << " num_particles_10_=" << data->num_particles_10
-    //           << std::endl;
+    std::cout << "[DustData] pm1_0_std=" << data->pm1_0_std
+              << " pm2_5_std=" << data->pm2_5_std
+              << " pm10__std=" << data->pm10_std
+              << " pm1_0_atm=" << data->pm1_0_atm
+              << " pm2_5_atm=" << data->pm2_5_atm
+              << " pm10__atm=" << data->pm10_atm
+              << " num_particles_0_3=" << data->num_particles_0_3
+              << " num_particles_0_5=" << data->num_particles_0_5
+              << " num_particles_1_0=" << data->num_particles_1_0
+              << " num_particles_2_5=" << data->num_particles_2_5
+              << " num_particles_5_0=" << data->num_particles_5_0
+              << " num_particles_10_=" << data->num_particles_10
+              << std::endl;
 
-    auto ros_msg = custom_msg::msg::DustData();
-    const auto* data = reinterpret_cast<const DustData*>(ptr);
+    // auto ros_msg = custom_msg::msg::DustData();
+    // const auto* data = reinterpret_cast<const DustData*>(ptr);
 
-    memcpy(&ros_msg.pm1_0_std, data, sizeof(DustData));
-    dust_pub->publish(ros_msg);
+    // memcpy(&ros_msg.pm1_0_std, data, sizeof(DustData));
+    // dust_pub->publish(ros_msg);
 }
 
 void servo_request_cb(const void* ptr) {
