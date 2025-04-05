@@ -1,3 +1,8 @@
+/**
+ * @file CostcoSubscriber.h
+ * @author Eliot Abramo, Matas Jones
+ *
+ */
 #include "CostcoSubscriber.h"
 #include "Cosco.hpp"
 

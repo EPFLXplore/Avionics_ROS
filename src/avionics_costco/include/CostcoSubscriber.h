@@ -1,10 +1,6 @@
 /**
  * @file CostcoSubscriber.h
- * @author Matas Jones
- * @brief Costco subscriber subscribes to topics generated from the CS and sends
- * the data to the serial
- * @version 0.1
- * @date 2025-03-27
+ * @author Eliot Abramo, Matas Jones
  *
  */
 
