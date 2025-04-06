@@ -118,8 +118,6 @@ void fourinone_cb(const void* ptr) {
 
 void dust_cb(const void* ptr) {
     const DustData* data = reinterpret_cast<const DustData*>(ptr);
-    const DustData* data = reinterpret_cast<const DustData*>(ptr);
-
 
     custom_msg::msg::DustData ros_msg;
     ros_msg.pm1_0_std = data->pm1_0_std;
