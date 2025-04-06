@@ -6,17 +6,13 @@
 #include "packet_definition.hpp"
 
 // Mass packets
-#define MassData_ID 1
-#define MassConfigRequest_ID 2
-#define MassCalib_ID 3
-#define MassConfig_ID 4
-#define MassConfigResponse_ID 5
+#define ServoCam_ID 1
+#define ServoDrill_ID 2
+#define MassData_ID 3
 
 // Servo packets
 #define Servo_ID 6
 #define ServoResponse_ID 7
-#define ServoCam_ID 8
-#define ServoDrill_ID 9
 #define ServoConfigResponse_ID 10
 
 // LED packets

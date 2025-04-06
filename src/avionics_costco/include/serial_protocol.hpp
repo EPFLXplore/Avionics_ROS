@@ -16,7 +16,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <custom_msg/msg/servo_response.hpp>
 #include <custom_msg/msg/dust_data.hpp>
-#include <custom_msg/msg/mass_array.hpp>
+#include <custom_msg/msg/mass_packet.hpp>
 #include <custom_msg/msg/four_in_one.hpp>
 
 #include "packet_definition.hpp"
@@ -25,7 +25,7 @@
 // global publishers used in the callback handlers
 extern rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
 extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
-extern rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
+extern rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
 extern rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 
 // setup serial port with non-blocking, raw config at 115200 baud and no flow control

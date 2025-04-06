@@ -9,7 +9,7 @@
 
 #include <custom_msg/msg/servo_response.hpp>
 #include <custom_msg/msg/dust_data.hpp>
-#include <custom_msg/msg/mass_array.hpp>
+#include <custom_msg/msg/mass_packet.hpp>
 #include <custom_msg/msg/four_in_one.hpp>
 
 
@@ -29,12 +29,12 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
     // Instantiate the publishers
     this->servo_response_ = this->create_publisher<custom_msg::msg::ServoResponse>("/EL/servo_response", 10);
     this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);
-    this->mass_array_ = this->create_publisher<custom_msg::msg::MassArray>("/EL/MassArray", 10);
+    this->mass_packet_ = this->create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", 10);
     this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>("/EL/four_in_one", 10);
 
     servo_response_pub = this->servo_response_;
     dust_pub = this->dust_sensor_;
-    mass_pub = this->mass_array_;
+    mass_pub = this->mass_packet_;
     fourinone_pub = this->four_in_one_;
 
     register_cosco_callbacks();

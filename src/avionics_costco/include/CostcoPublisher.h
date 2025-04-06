@@ -20,12 +20,7 @@
 #include "custom_msg/msg/servo_response.hpp"
 #include "custom_msg/msg/dust_data.hpp"
 #include "custom_msg/msg/four_in_one.hpp"
-#include "custom_msg/msg/mass_array.hpp"
-
-// Define the case used to call the indivdual cases depending on the message id
-#define CASE_MASS_ARRAY 0
-#define CASE_FOUR_IN_ONE 1
-#define CASE_DUST_SENSOR 2
+#include "custom_msg/msg/mass_packet.hpp"
 
 // Create the CostcoPublisher class, it is used to setup the topics and the
 // handles
@@ -44,7 +39,7 @@ private:
   // the cpp
   rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_;
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
-  rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_array_;
+  rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_packet_;
   rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
 
   // Create a timer to read the data from the serial
@@ -58,7 +53,7 @@ private:
    * these below will probably be deleted soon
    */
 
-  void mass_array_handle(int *data);
+  void mass_packet_handle(int *data);
   void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);
 };

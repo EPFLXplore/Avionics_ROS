@@ -35,28 +35,17 @@ Cosco::~Cosco() {
     }
 }
 
-void Cosco::sendMassConfigPacket(MassConfigPacket *configPacket) {
-    send_packet(fd, MassConfig_ID, *configPacket);
-}
-
-void Cosco::sendMassConfigRequestPacket(MassConfigRequestPacket *requestPacket) {
-    send_packet(fd, MassConfigRequest_ID, *requestPacket);
-}
-
-void Cosco::sendMassConfigResponsePacket(MassConfigResponsePacket *responsePacket) {
-    send_packet(fd, MassConfigResponse_ID, *responsePacket);
-}
-
-void Cosco::sendMassDataPacket(MassArray *massPacket) {
+void Cosco::sendMassPacket(MassPacket *massPacket) {
     send_packet(fd, MassData_ID, *massPacket);
 }
 
 void Cosco::sendServoRequestPacket(ServoRequest* requestPacket) {
-    send_packet(fd, ServoConfigRequest_ID, *requestPacket);
-}
+    if(requestPacket->id == ServoCam_ID){
+        send_packet(fd, ServoCam_ID, *requestPacket);
+    } else if(requestPacket->id == ServoDrill_ID){
+        send_packet(fd, ServoDrill_ID, *requestPacket);
+    }
 
-void Cosco::sendServoResponsePacket(ServoResponse* responsePacket) {
-    send_packet(fd, ServoResponse_ID, *responsePacket);
 }
 
 int Cosco::get_fd() const {

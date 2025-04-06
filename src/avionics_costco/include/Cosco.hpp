@@ -21,30 +21,6 @@ public:
      * @brief Destroys a Cosco Object. Should unalocate any pointers and memory used up in class
      */    
     ~Cosco();
-    
-    /**
-     * @brief Send mass configuration packet
-     * 
-     * @param configPacket: pointer to packet to be sent. Defined in Packets->packet_definition.hpp
-     * @return null 
-     */
-    void sendMassConfigPacket(MassConfigPacket* configPacket);
-
-    /**
-     * @brief Send mass configuration packet
-     * 
-     * @param configPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendMassConfigRequestPacket(MassConfigRequestPacket* requestPacket);
-
-    /**
-     * @brief Send mass configuration response packet
-     * 
-     * @param configPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendMassConfigResponsePacket(MassConfigResponsePacket* responsePacket);
 
     /**
      * @brief Send mass data  packet
@@ -52,8 +28,7 @@ public:
      * @param configPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
      * @return null 
      */
-    void sendMassDataPacket(MassArray *massPacket);
-
+    void sendMassPacket(MassPacket *responsePacket);
 
     /**
      * @brief Send mass configuration packet
@@ -69,7 +44,8 @@ public:
      * @param responsePacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
      * @return null 
      */
-    void sendServoResponsePacket(ServoResponse* responsePacket);
+    void sendServoCamResponse(ServoResponse* pkt);
+    void sendServoDrillResponse(ServoResponse* pkt);
 
     /**
      * @brief Send sensor data packet

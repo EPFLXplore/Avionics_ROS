@@ -13,12 +13,8 @@
 // bound at runtime in CoscoPublisher
 rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
 rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
-rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
+rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
 rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
-
-// most recent config data 
-MassConfigRequestPacket latest_mass_config_request;
-MassConfigResponsePacket latest_mass_config_response;
 
 // internal packet registry
 std::unordered_map<uint8_t, std::pair<size_t, callback_t>> handlers;
@@ -43,26 +39,8 @@ void setup_serial(int fd) {
 /*
     pre-packet callbacks
 */
-void mass_config_request_callback(const void* ptr) {
-    const MassConfigRequestPacket* data = reinterpret_cast<const MassConfigRequestPacket*>(ptr);
-    latest_mass_config_request = *data;
 
-    std::cout << "[MassConfigRequest] id=" << data->id
-              << " req_config=" << std::boolalpha << data->req_config << std::endl;
-}
-
-void mass_config_response_callback(const void* ptr) {
-    const MassConfigResponsePacket* data = reinterpret_cast<const MassConfigResponsePacket*>(ptr);
-    latest_mass_config_response = *data;
-
-    std::cout << "[MassConfigResponse] id=" << data->id
-              << " offset=" << data->offset
-              << " scale=" << data->scale
-              << " offset_set=" << std::boolalpha << data->offset_set
-              << " scale_set=" << data->scale_set << std::endl;
-}
-
-void mass_array_cb(const void* ptr) {
+void mass_packet_cb(const void* ptr) {
     const MassPacket* data = reinterpret_cast<const MassPacket*>(ptr);
     custom_msg::msg::MassPacket ros_msg;
 
@@ -73,7 +51,7 @@ void mass_array_cb(const void* ptr) {
         mass_pub->publish(ros_msg);
     }
 
-    std::cout<< "[MassData] Send mass pub to /EL/mass_array" << std::endl;
+    std::cout<< "[MassData] Send mass pub to /EL/mass_packet" << std::endl;
 }
 
 void fourinone_cb(const void* ptr) {
@@ -135,10 +113,11 @@ void servo_response_cb(const void* ptr) {
 
 // registration + processing
 void register_cosco_callbacks() {
-    register_packet(MassData_ID, sizeof(MassArray), mass_array_cb);
+    register_packet(MassData_ID, sizeof(MassPacket), mass_packet_cb);
     register_packet(FourInOne_ID, sizeof(FourInOne), fourinone_cb);
     register_packet(DustData_ID, sizeof(DustData), dust_cb);
-    register_packet(ServoConfigRequest_ID, sizeof(ServoRequest), servo_request_cb);
+    register_packet(ServoCam_ID, sizeof(ServoRequest), servo_request_cb);
+    register_packet(ServoDrill_ID, sizeof(ServoRequest), servo_request_cb);
     register_packet(ServoConfigResponse_ID, sizeof(ServoResponse), servo_response_cb);
 }
 
