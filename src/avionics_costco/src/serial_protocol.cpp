@@ -11,9 +11,10 @@
 #include <unordered_map>
 
 // bound at runtime in CoscoPublisher
+rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
+rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_pub;
 rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
-rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 
 // most recent config data 
 MassConfigRequestPacket latest_mass_config_request;
@@ -77,7 +78,7 @@ void mass_config_request_callback(const void* ptr) {
     latest_mass_config_request = *data;
 
     std::cout << "[MassConfigRequest] id=" << data->id
-              << " req_config=" << std::boolalpha << data->req_config << "\n";
+              << " req_config=" << std::boolalpha << data->req_config << std::endl;
 }
 
 void mass_config_response_callback(const void* ptr) {
@@ -88,7 +89,7 @@ void mass_config_response_callback(const void* ptr) {
               << " offset=" << data->offset
               << " scale=" << data->scale
               << " offset_set=" << std::boolalpha << data->offset_set
-              << " scale_set=" << data->scale_set << "\n";
+              << " scale_set=" << data->scale_set << std::endl;
 }
 
 
@@ -117,27 +118,40 @@ void fourinone_cb(const void* ptr) {
 }
 
 void dust_cb(const void* ptr) {
-    // const DustData* data = reinterpret_cast<const DustData*>(ptr);
+    const DustData* data = reinterpret_cast<const DustData*>(ptr);
 
     // std::cout << "[DustData] pm1_0_std=" << data->pm1_0_std
-    //           << " pm2_5_std=" << data->pm2_5_std
-    //           << " pm10__std=" << data->pm10_std
-    //           << " pm1_0_atm=" << data->pm1_0_atm
-    //           << " pm2_5_atm=" << data->pm2_5_atm
-    //           << " pm10__atm=" << data->pm10_atm
-    //           << " num_particles_0_3=" << data->num_particles_0_3
-    //           << " num_particles_0_5=" << data->num_particles_0_5
-    //           << " num_particles_1_0=" << data->num_particles_1_0
-    //           << " num_particles_2_5=" << data->num_particles_2_5
-    //           << " num_particles_5_0=" << data->num_particles_5_0
-    //           << " num_particles_10_=" << data->num_particles_10
+    //           << " \npm2_5_std=" << data->pm2_5_std
+    //           << " \npm10__std=" << data->pm10_std
+    //           << " \npm1_0_atm=" << data->pm1_0_atm
+    //           << " \npm2_5_atm=" << data->pm2_5_atm
+    //           << " \npm10__atm=" << data->pm10_atm
+    //           << " \nnum_particles_0_3=" << data->num_particles_0_3
+    //           << " \nnum_particles_0_5=" << data->num_particles_0_5
+    //           << " \nnum_particles_1_0=" << data->num_particles_1_0
+    //           << " \nnum_particles_2_5=" << data->num_particles_2_5
+    //           << " \nnum_particles_5_0=" << data->num_particles_5_0
+    //           << " \nnum_particles_10_=" << data->num_particles_10
     //           << std::endl;
 
-    auto ros_msg = custom_msg::msg::DustData();
-    const auto* data = reinterpret_cast<const DustData*>(ptr);
+    custom_msg::msg::DustData ros_msg;
+    ros_msg.pm1_0_std = data->pm1_0_std;
+    ros_msg.pm2_5_std = data->pm2_5_std;
+    ros_msg.pm10_std = data->pm10_std;
+    ros_msg.pm1_0_atm = data->pm1_0_atm;
+    ros_msg.pm2_5_atm = data->pm2_5_atm;
+    ros_msg.pm10_atm = data->pm10_atm;
+    ros_msg.num_particles_0_3 = data->num_particles_0_3;
+    ros_msg.num_particles_0_5 = data->num_particles_0_5;
+    ros_msg.num_particles_1_0 = data->num_particles_1_0;
+    ros_msg.num_particles_2_5 = data->num_particles_2_5;
+    ros_msg.num_particles_5_0 = data->num_particles_5_0;
+    ros_msg.num_particles_10 = data->num_particles_10;
 
-    memcpy(&ros_msg.pm1_0_std, data, sizeof(DustData));
-    dust_pub->publish(ros_msg);
+    if (dust_pub) {
+        dust_pub->publish(ros_msg);
+    }
+    std::cout << "[DustData] Published to /EL/dust_sensor" << std::endl;
 }
 
 void servo_request_cb(const void* ptr) {
@@ -149,9 +163,17 @@ void servo_request_cb(const void* ptr) {
 
 void servo_response_cb(const void* ptr) {
     const ServoResponse* data = reinterpret_cast<const ServoResponse*>(ptr);
-    std::cout << "[ServoResponse] id=" << data->id
-              << " angle=" << static_cast<int32_t>(data->angle)
-              << " success=" << std::boolalpha << data->success << std::endl;
+    // std::cout << "[ServoResponse] id=" << data->id
+    //           << " angle=" << static_cast<int32_t>(data->angle)
+    //           << " success=" << std::boolalpha << data->success << std::endl;
+    custom_msg::msg::ServoResponse ros_msg;
+    ros_msg.id = data->id;
+    ros_msg.angle = data->angle;
+    ros_msg.success = data->success;
+    if (servo_response_pub) {
+        servo_response_pub->publish(ros_msg);
+    }
+    std::cout << "[ServoResponse] Published to /EL/servo_response" << std::endl;
 }
 
 // registration + processing

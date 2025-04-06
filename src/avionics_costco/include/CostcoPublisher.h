@@ -17,6 +17,7 @@
 #include <atomic>
 
 // Include the custom messages
+#include "custom_msg/msg/servo_response.hpp"
 #include "custom_msg/msg/dust_data.hpp"
 #include "custom_msg/msg/four_in_one.hpp"
 #include "custom_msg/msg/mass_array.hpp"
@@ -41,11 +42,10 @@ public:
 private:
   // Create a shared pointer which will be used to reference the publisher in
   // the cpp
-  rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_array_;
-
-  rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
-
+  rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_;
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
+  rclcpp::Publisher<custom_msg::msg::MassArray>::SharedPtr mass_array_;
+  rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
 
   // Create a timer to read the data from the serial
   rclcpp::TimerBase::SharedPtr timer_;
@@ -55,11 +55,9 @@ private:
 
   // Declare the different handle functions
   /**
-   * @brief General handle layout: parse data depending of message type, prepare
-   * fill message with data, publish message
-   *
-   * @param data is the data from the serial
+   * these below will probably be deleted soon
    */
+
   void mass_array_handle(int *data);
   void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);

@@ -26,7 +26,7 @@ Cosco::Cosco() {
     }
     fcntl(fd, F_SETFL, 0);
     setup_serial(fd);
-    std::cout << "[Cosco] Serial port opened\n";
+    std::cout << "[Cosco] Serial port opened" << std::endl;
 }
 
 Cosco::~Cosco() {
