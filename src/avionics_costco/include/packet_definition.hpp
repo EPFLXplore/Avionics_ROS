@@ -9,8 +9,6 @@
 #include <iostream>
 #include <packet_id.hpp>
 
-#pragma pack(push, 1)
-
 struct LEDMessage {
     uint8_t low;
     uint8_t high;
@@ -33,14 +31,6 @@ struct DustData {
     uint16_t num_particles_10;
 };
 
-struct MassCalibPacket {
-    uint16_t id;
-    float expected_weight;
-    uint32_t num_samples;
-    bool calibrate_offset;
-    bool calibrate_scale;
-};
-
 struct FourInOne {
     uint16_t id;
     float temperature;
@@ -49,31 +39,14 @@ struct FourInOne {
     float ph;
 };
 
+struct DustReset {
+    bool reset;
+};
+
 struct ServoResponse {
     uint16_t id;
     int32_t angle;
     bool success;
-};
-
-struct MassConfigPacket {
-    uint16_t id;
-    float offset;
-    float scale;
-    bool set_offset;
-    bool set_scale;
-};
-
-struct MassConfigResponsePacket {
-    uint16_t id;
-    float offset;
-    float scale;
-    bool offset_set;
-    bool scale_set;
-};
-
-struct MassArray {
-    uint16_t id;
-    float mass;
 };
 
 struct NPK {
@@ -104,12 +77,5 @@ struct ServoRequest {
 struct LEDResponse {
     bool success;
 };
-
-struct MassConfigRequestPacket {
-    uint16_t id;
-    bool req_config;
-};
-
-#pragma pack(pop)
 
 #endif /* PACKET_DEFINITION_H */

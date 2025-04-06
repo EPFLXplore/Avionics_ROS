@@ -40,36 +40,6 @@ void setup_serial(int fd) {
     tcsetattr(fd, TCSANOW, &options);
 }
 
-bool try_read_packet(int fd) {
-    uint8_t packet_id;
-    ssize_t read_bytes = read(fd, &packet_id, 1);
-    if (read_bytes != 1)
-        return false;
-
-    auto it = handlers.find(packet_id);
-    if (it == handlers.end()) {
-        std::cerr << "[HOST] Unknown packet ID: 0x" << std::hex << (int)packet_id << " — skipping\n" << std::dec;
-        return false;
-    }
-
-    size_t size = it->second.first;
-    callback_t& cb = it->second.second;
-    std::vector<uint8_t> buffer(size);
-
-    size_t total_read = 0;
-    while (total_read < size) {
-        ssize_t chunk = read(fd, buffer.data() + total_read, size - total_read);
-        if (chunk <= 0) {
-            usleep(1000);
-            continue;
-        }
-        total_read += chunk;
-    }
-
-    cb(buffer.data());
-    return true;
-}
-
 /*
     pre-packet callbacks
 */
@@ -93,8 +63,8 @@ void mass_config_response_callback(const void* ptr) {
 }
 
 void mass_array_cb(const void* ptr) {
-    const MassArray* data = reinterpret_cast<const MassArray*>(ptr);
-    custom_msg::msg::MassArray ros_msg;
+    const MassPacket* data = reinterpret_cast<const MassPacket*>(ptr);
+    custom_msg::msg::MassPacket ros_msg;
 
     ros_msg.id = data->id;
     ros_msg.mass = data->mass;
@@ -102,6 +72,8 @@ void mass_array_cb(const void* ptr) {
     if (mass_pub) {
         mass_pub->publish(ros_msg);
     }
+
+    std::cout<< "[MassData] Send mass pub to /EL/mass_array" << std::endl;
 }
 
 void fourinone_cb(const void* ptr) {

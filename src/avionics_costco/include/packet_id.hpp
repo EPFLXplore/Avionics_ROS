@@ -15,8 +15,8 @@
 // Servo packets
 #define Servo_ID 6
 #define ServoResponse_ID 7
-#define ServoConfigRequest_ID 8
-#define ServoConfig_ID 9
+#define ServoCam_ID 8
+#define ServoDrill_ID 9
 #define ServoConfigResponse_ID 10
 
 // LED packets

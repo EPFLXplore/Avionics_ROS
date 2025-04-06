@@ -81,23 +81,3 @@ CostcoPublisher::~CostcoPublisher() {
     serial_thread_.join();
   }
 }
-
-/**
- * @brief The idea is to read the frist byte of the message which will call the
- * appropriate handle, to parse the data and send the message
- */
-
-// Handle for the mass array
-void CostcoPublisher::mass_array_handle(int *data) {
-  RCLCPP_INFO(this->get_logger(), "In mass_array_handle");
-}
-
-// Handle for the four in one sensor
-void CostcoPublisher::four_in_one_handle(int *data) {
-  RCLCPP_INFO(this->get_logger(), "In four_in_one_handle");
-}
-
-// Handle for the dust sensor
-void CostcoPublisher::dust_sensor_handle(int *data) {
-  RCLCPP_INFO(this->get_logger(), "In dust_sensor_handle");
-}
