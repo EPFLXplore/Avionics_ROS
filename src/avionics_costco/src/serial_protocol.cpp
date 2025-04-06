@@ -92,7 +92,6 @@ void mass_config_response_callback(const void* ptr) {
               << " scale_set=" << data->scale_set << std::endl;
 }
 
-
 void mass_array_cb(const void* ptr) {
     const MassArray* data = reinterpret_cast<const MassArray*>(ptr);
     custom_msg::msg::MassArray ros_msg;
@@ -119,20 +118,8 @@ void fourinone_cb(const void* ptr) {
 
 void dust_cb(const void* ptr) {
     const DustData* data = reinterpret_cast<const DustData*>(ptr);
+    const DustData* data = reinterpret_cast<const DustData*>(ptr);
 
-    // std::cout << "[DustData] pm1_0_std=" << data->pm1_0_std
-    //           << " \npm2_5_std=" << data->pm2_5_std
-    //           << " \npm10__std=" << data->pm10_std
-    //           << " \npm1_0_atm=" << data->pm1_0_atm
-    //           << " \npm2_5_atm=" << data->pm2_5_atm
-    //           << " \npm10__atm=" << data->pm10_atm
-    //           << " \nnum_particles_0_3=" << data->num_particles_0_3
-    //           << " \nnum_particles_0_5=" << data->num_particles_0_5
-    //           << " \nnum_particles_1_0=" << data->num_particles_1_0
-    //           << " \nnum_particles_2_5=" << data->num_particles_2_5
-    //           << " \nnum_particles_5_0=" << data->num_particles_5_0
-    //           << " \nnum_particles_10_=" << data->num_particles_10
-    //           << std::endl;
 
     custom_msg::msg::DustData ros_msg;
     ros_msg.pm1_0_std = data->pm1_0_std;
