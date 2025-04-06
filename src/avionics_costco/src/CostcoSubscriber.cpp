@@ -56,6 +56,7 @@ void CostcoSubscriber::ServoRequestHandler(const custom_msg::msg::ServoRequest::
   RCLCPP_INFO(this->get_logger(), "Servo received");
 
   Cosco coscoSend;
+  
   coscoSend.sendServoRequestPacket(&servoRequesteMsg);
   RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
 }

@@ -69,7 +69,7 @@ struct MassPacket {
 };
 
 struct ServoRequest {
-    uint16_t id;
+    uint8_t id;
     int32_t increment;
     bool zero_in;
 };
