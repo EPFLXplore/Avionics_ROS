@@ -31,4 +31,14 @@ def generate_launch_description():
     )
     ld.add_action(Costco_node)
 
+    included_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [os.path.join(
+            get_package_share_directory('avionics_BMS_new'), 'launch'
+            ), '/avionics_bms_launch.py']
+        )
+    )
+
+    ld.add_action(included_launch)
+
     return ld

@@ -41,11 +41,10 @@ void Cosco::sendMassPacket(MassPacket *massPacket) {
 
 void Cosco::sendServoRequestPacket(ServoRequest* requestPacket) {
     if(requestPacket->id == ServoCam_ID){
-        send_packet(fd, ServoCam_ID, *requestPacket);
+        send_packet(fd, 1, *requestPacket);
     } else if(requestPacket->id == ServoDrill_ID){
-        send_packet(fd, ServoDrill_ID, *requestPacket);
+        send_packet(fd, 2, *requestPacket);
     }
-
 }
 
 int Cosco::get_fd() const {
