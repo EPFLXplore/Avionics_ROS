@@ -118,7 +118,8 @@ void register_cosco_callbacks() {
     register_packet(DustData_ID, sizeof(DustData), dust_cb);
     register_packet(ServoCam_ID, sizeof(ServoRequest), servo_request_cb);
     register_packet(ServoDrill_ID, sizeof(ServoRequest), servo_request_cb);
-    register_packet(ServoConfigResponse_ID, sizeof(ServoResponse), servo_response_cb);
+    register_packet(ServoCam_ID, sizeof(ServoResponse), servo_response_cb);
+    register_packet(ServoDrill_ID, sizeof(ServoResponse), servo_response_cb);
 }
 
 void process_packets(int fd) {
