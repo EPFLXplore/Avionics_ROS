@@ -3,22 +3,34 @@ import numpy as np
 import rclpy
 from rclpy.node import Node
 from pymodbus.client import ModbusSerialClient
+import time
+import os
 
 from custom_msg.msg import BMS # Import the BMS custom message
 
 # Configure Modbus Serial Client
 usb_port = '/dev/ttyBMS' # TOP RIGHT OF PI !
-port = usb_port
 bms_available = True
 
-client = ModbusSerialClient(
-    port=port, timeout=2, baudrate=115200
-)
+# client = ModbusSerialClient(
+#     port=usb_port, timeout=2, baudrate=115200
+# )
 
-if not client.connect():
-    print("Failed to connect to Modbus device.")
-    bms_available = False
-    exit(1)
+# if not client.connect():
+#     print("Failed to connect to Modbus device.")
+#     bms_available = False
+#     # exit(1)
+
+for _ in range(50):
+    if os.path.exists(usb_port) and os.access(usb_port, os.R_OK | os.W_OK):
+        client = ModbusSerialClient(port=usb_port, timeout=2, baudrate=115200)
+        if client.connect():
+            break
+        time.sleep(0.01)
+    else:
+        print("Failed to connect to Modbus device after 50 retries")
+        bms_available = False
+        exit(1)
 
 class BMSPublisher(Node):
     def __init__(self):
@@ -34,7 +46,13 @@ class BMSPublisher(Node):
             msg.v_bat = float(v_bat)
             msg.status = status
             msg.current = float(current)
-            self.publisher_.publish(msg) # Publish the message on the topic
+        else:
+            msg = BMS()
+            msg.v_bat = float(0)
+            msg.status = "disconnected"
+            msg.current = float(0)
+            
+        self.publisher_.publish(msg) # Publish the message on the topic
 
 def main(args=None):
     rclpy.init(args=args)
