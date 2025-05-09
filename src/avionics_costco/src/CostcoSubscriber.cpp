@@ -40,10 +40,6 @@ CostcoSubscriber::~CostcoSubscriber() {
 
 // Handle for the LED message
 void CostcoSubscriber::LEDHandler(const custom_msg::msg::LEDMessage::SharedPtr msg) {
-  uint8_t low = msg->low;
-  uint8_t high = msg->high;
-  uint8_t system = msg->system;
-  uint8_t mode = msg->mode;
   RCLCPP_INFO(this->get_logger(), "LED msg received");
 }
 

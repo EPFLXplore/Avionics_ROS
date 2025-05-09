@@ -113,7 +113,8 @@ void servo_response_cb(const void* ptr) {
 
 // registration + processing
 void register_cosco_callbacks() {
-    register_packet(MassData_ID, sizeof(MassPacket), mass_packet_cb);
+    register_packet(MassDrill_ID, sizeof(MassPacket), mass_packet_cb);
+    register_packet(MassHD_ID, sizeof(MassPacket), mass_packet_cb);
     register_packet(FourInOne_ID, sizeof(FourInOne), fourinone_cb);
     register_packet(DustData_ID, sizeof(DustData), dust_cb);
     register_packet(ServoCam_ID, sizeof(ServoRequest), servo_request_cb);
