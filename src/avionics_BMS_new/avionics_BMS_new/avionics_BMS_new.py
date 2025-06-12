@@ -12,25 +12,15 @@ from custom_msg.msg import BMS # Import the BMS custom message
 usb_port = '/dev/ttyBMS' # TOP RIGHT OF PI !
 bms_available = True
 
-# client = ModbusSerialClient(
-#     port=usb_port, timeout=2, baudrate=115200
-# )
+client = ModbusSerialClient(
+    port=usb_port, timeout=2, baudrate=115200
+)
 
-# if not client.connect():
-#     print("Failed to connect to Modbus device.")
-#     bms_available = False
+if not client.connect():
+     print("Failed to connect to Modbus device.")
+     bms_available = False
 #     # exit(1)
 
-for _ in range(50):
-    if os.path.exists(usb_port) and os.access(usb_port, os.R_OK | os.W_OK):
-        client = ModbusSerialClient(port=usb_port, timeout=2, baudrate=115200)
-        if client.connect():
-            break
-        time.sleep(0.01)
-    else:
-        print("Failed to connect to Modbus device after 50 retries")
-        bms_available = False
-        exit(1)
 
 class BMSPublisher(Node):
     def __init__(self):
