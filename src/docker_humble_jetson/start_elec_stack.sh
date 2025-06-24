@@ -5,7 +5,7 @@ USERNAME=xplore
 CONTAINER_NAME=elec_humble_jetson
 IMAGE_NAME=ghcr.io/epflxplore/elec:humble-jetson
 
-DOCKER_COMMAND="sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd ..; source src/docker_humble_jetson/attach.sh; ros2 launch avionics_costco launch.py"
+DOCKER_COMMAND="sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd ..; sudo chmod a+rw /dev/ttyESP32_Avionics; sudo chmod a+rw /dev/ttyBMS; source src/docker_humble_jetson/attach.sh; ros2 launch avionics_costco launch.py"
 
 # Function to check if a Docker container is running
 is_container_running() {
