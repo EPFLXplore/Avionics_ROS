@@ -34,7 +34,7 @@ struct DustData {
 struct FourInOne {
     uint16_t id;
     float temperature;
-    float moisture;
+    float humidity;
     float conductivity;
     float ph;
 };

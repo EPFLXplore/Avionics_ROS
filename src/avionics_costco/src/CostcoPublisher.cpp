@@ -25,6 +25,11 @@ CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
     RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
 
+    this->declare_parameter<std::string>("port_name", "");
+    std::string port_name = this->get_parameter("port_name").as_string();
+    RCLCPP_INFO(this->get_logger(), "port_name: %s", port_name.c_str());
+    cosco_ = Cosco(port_name);
+
     // Instantiate the publishers
     this->servo_response_ = this->create_publisher<custom_msg::msg::ServoResponse>("/EL/servo_response", 10);
     this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);

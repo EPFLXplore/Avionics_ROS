@@ -8,6 +8,7 @@
 #include "packet_definition.hpp"
 #include "packet_id.hpp"
 #include "serial_protocol.hpp"
+#include <string>
 
 
 class Cosco {
@@ -15,7 +16,9 @@ public:
     /**
      * @brief Create a new Cosco Object
      */
-    Cosco();
+    Cosco(std::string port_name);
+
+    Cosco() {}
     
     /**
      * @brief Destroys a Cosco Object. Should unalocate any pointers and memory used up in class
@@ -69,6 +72,7 @@ public:
 
 private:
     int fd;
+    const char* _port_name;
 };
 
 #endif /* COSCO_HPP */

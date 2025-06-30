@@ -16,10 +16,10 @@
 #include <stdint.h>
 #include <string.h>
 
-const char* portname = "/dev/ttyESP32_Avionics";
+//const char* portname = "/dev/ttyESP32_Avionics";
 
-Cosco::Cosco() {
-    fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
+Cosco::Cosco(std::string port_name) : _port_name(port_name.c_str()){
+    fd = open(_port_name, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1) {
         perror("[Cosco] Failed to open serial port");
         return;

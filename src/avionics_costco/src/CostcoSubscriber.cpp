@@ -6,6 +6,8 @@
 #include "CostcoSubscriber.h"
 #include "Cosco.hpp"
 
+Cosco cosco_sub;
+
 /**
  * @brief Constructor for the costco publisher, declare the subscribers on the
  * topics and read data from ros to be sent on serial
@@ -13,6 +15,11 @@
 CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
 
   RCLCPP_INFO(this->get_logger(), "Creating CostcoSubscriber");
+
+  this->declare_parameter<std::string>("port_name", "");
+  std::string port_name = this->get_parameter("port_name").as_string();
+  RCLCPP_INFO(this->get_logger(), "port_name_2: %s", port_name.c_str());
+  cosco_sub = Cosco(port_name);
 
   // Instantiate the subscribers
   // !!! topic name != message name (for LEDMessage, why? ask Gio)
@@ -50,9 +57,7 @@ void CostcoSubscriber::ServoRequestHandler(const custom_msg::msg::ServoRequest::
   servoRequesteMsg.increment = msg->increment;
   servoRequesteMsg.zero_in = msg->zero_in;
   RCLCPP_INFO(this->get_logger(), "Servo received");
-
-  Cosco coscoSend;
   
-  coscoSend.sendServoRequestPacket(&servoRequesteMsg);
+  cosco_sub.sendServoRequestPacket(&servoRequesteMsg);
   RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
 }

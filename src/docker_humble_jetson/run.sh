@@ -50,21 +50,3 @@ docker run -it \
     -v elec_humble_jetson_home_volume:/home/xplore \
     ghcr.io/epflxplore/elec:humble-jetson \
     /bin/bash -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; /bin/bash"
-
-# docker run -it \
-#     --name elec_humble_jetson \
-#     --rm \
-#     --net=host \
-#     --device=/dev/ttyUSB0:/dev/ttyBMS \
-#     --group-add dialout \
-#     -e DISPLAY=unix$DISPLAY \
-#     -e QT_X11_NO_MITSHM=1 \
-#     -e XAUTHORITY=$XAUTH \
-#     -v /tmp/.X11-unix:/tmp/.X11-unix:rw \
-#     -v $XAUTH:$XAUTH \
-#     -v /run/user/1000/at-spi:/run/user/1000/at-spi \
-#     -v $parent_dir:/home/xplore/dev_ws/src \
-#     -v elec_humble_jetson_home_volume:/home/xplore \
-#     ghcr.io/epflxplore/elec:humble-jetson \
-#     /bin/bash -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; /bin/bash"
-# #

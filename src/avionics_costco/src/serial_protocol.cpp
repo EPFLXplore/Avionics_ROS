@@ -60,7 +60,7 @@ void fourinone_cb(const void* ptr) {
 
     ros_msg.id = data->id;
     ros_msg.temperature = data->temperature;
-    ros_msg.moisture = data->moisture;
+    ros_msg.humidity = data->humidity;
     ros_msg.conductivity = data->conductivity;
     ros_msg.ph = data->ph;
     fourinone_pub->publish(ros_msg);
