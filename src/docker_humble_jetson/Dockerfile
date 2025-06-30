@@ -5,6 +5,12 @@ FROM dustynv/ros:humble-desktop-l4t-r36.2.0 AS base
 
 ARG DEBIAN_FRONTEND=noninteractive
 
+RUN sudo rm /usr/share/keyrings/ros-archive-keyring.gpg
+RUN sudo curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
+RUN sudo apt update && sudo apt install ros2-apt-source  
+RUN sudo rm /etc/apt/sources.list.d/ros2.list
+RUN sudo rm /usr/share/keyrings/ros-archive-keyring.gpg
+
 ENV USERNAME=xplore
 ARG USER_UID=1000
 ARG USER_GID=$USER_UID
@@ -38,7 +44,7 @@ RUN echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | sudo tee /et
 RUN /etc/init.d/udev restart
 
 USER $USERNAME
-RUN pip3 install pymodbus
+RUN pip3 install pymodbus 
 RUN pip3 install pyserial
 
 # Set a diretory to store the project

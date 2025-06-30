@@ -16,19 +16,9 @@
 #include <stdint.h>
 #include <string.h>
 
-// const char* portname = "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0";
 const char* portname = "/dev/ttyESP32_Avionics";
-//const char* portname = "/dev/ttyUSB0";
 
 Cosco::Cosco() {
-    // uint8_t attempts = 0;
-    // while ((fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK)) == -1) {
-    //     if (++attempts > 50) {
-    //         perror("[Cosco] Serial port failed after 50 attempts");
-    //         return;
-    //     }
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    // }
     fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1) {
         perror("[Cosco] Failed to open serial port");
