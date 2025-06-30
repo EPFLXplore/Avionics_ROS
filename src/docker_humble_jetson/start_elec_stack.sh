@@ -5,7 +5,7 @@ USERNAME=xplore
 CONTAINER_NAME=elec_humble_jetson
 IMAGE_NAME=ghcr.io/epflxplore/elec:humble-jetson
 
-DOCKER_COMMAND="sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd ..; sudo chmod a+rw /dev/ttyESP32_Avionics; sudo chmod a+rw /dev/ttyBMS; source src/docker_humble_jetson/attach.sh; ros2 launch avionics_costco launch.py"
+DOCKER_COMMAND="sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd ..; source src/docker_humble_jetson/attach.sh; ros2 launch avionics_costco launch.py"
 
 # Function to check if a Docker container is running
 is_container_running() {
@@ -63,7 +63,7 @@ if [ "$container_status" == "false" ]; then
         -v $parent_dir:/home/$USERNAME/dev_ws/src \
         -v elec_humble_jetson_home_volume:/home/$USERNAME \
         $IMAGE_NAME \
-        /bin/bash -c "$DOCKER_COMMAND"
+        /bin/bash -c "sudo bash -c 'cd /home/$USERNAME/dev_ws; source install/setup.sh; ros2 launch avionics_costco launch.py'"
 else
     echo "Container $CONTAINER_NAME is already running. Attaching to it..."
     docker exec -it $CONTAINER_NAME $DOCKER_COMMAND

@@ -38,7 +38,10 @@ RUN apt-get install -y --no-install-recommends
 RUN ACCEPT_EULA=Y apt install -y ubuntu-restricted-extras
 RUN apt-get update && apt-get install -y libserialport-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
+RUN python3 -m pip install numpy pymodbus pyserial
+
 USER $USERNAME
+
 RUN python3 -m pip install numpy pymodbus pyserial
 
 # Set a diretory to store the project
