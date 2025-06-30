@@ -21,14 +21,6 @@ const char* portname = "/dev/ttyESP32_Avionics";
 //const char* portname = "/dev/ttyUSB0";
 
 Cosco::Cosco() {
-    // uint8_t attempts = 0;
-    // while ((fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK)) == -1) {
-    //     if (++attempts > 50) {
-    //         perror("[Cosco] Serial port failed after 50 attempts");
-    //         return;
-    //     }
-    //     std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    // }
     fd = open(portname, O_RDWR | O_NOCTTY | O_NONBLOCK);
     if (fd == -1) {
         perror("[Cosco] Failed to open serial port");

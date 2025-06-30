@@ -38,8 +38,7 @@ RUN echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | sudo tee /et
 RUN /etc/init.d/udev restart
 
 USER $USERNAME
-RUN pip3 install pymodbus
-RUN pip3 install pyserial
+RUN pip3 install pymodbus pyserial
 
 # Set a diretory to store the project
 WORKDIR /home/$USERNAME/dev_ws/src
