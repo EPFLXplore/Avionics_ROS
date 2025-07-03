@@ -9,9 +9,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         Node(
-            package='avionics_BMS_new',
-            executable='bms_publisher', # What will be run, it is bms_publisher in avioncs_bms/bms_monitor.py -> main
-            name='bms_publisher',
+            package='python_node',
+            executable='python_publisher', # What will be run, it is bms_publisher in avioncs_bms/bms_monitor.py -> main
+            name='python_publisher',
             output='screen', # Allows to display logs in terminal
         )
     ])

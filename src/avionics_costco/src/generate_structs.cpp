@@ -1,9 +1,11 @@
 /**
- * @file generate_structs.hpp
+ * @file generate_structs.cpp
  * @author Eliot Abramo
-*/
+ * @brief Generate c++ structs to be used by avionics code.
+ * @date 2025-07-03
+ */
 
-#ifdef GENERATE_MSG //defined in bash script
+ #ifdef GENERATE_MSG //defined in bash script
 
 #include <iostream>
 #include <fstream>

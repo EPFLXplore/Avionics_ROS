@@ -1,11 +1,12 @@
 /**
- * @file CoscoPublisher.cpp
- * @author Ilyas Asmouki
-*/
+ * @file CostcoPublisher.cpp
+ * @author Eliot Abramo, Ilyas Asmouki
+ * @brief Publisher Implementation of Cosco node
+ * @date 2025-07-03
+ */
 
-#include "CostcoPublisher.h"
+ #include "CostcoPublisher.h"
 #include "Cosco.hpp"
-#include "serial_protocol.hpp"
 
 #include <custom_msg/msg/servo_response.hpp>
 #include <custom_msg/msg/dust_data.hpp>
@@ -14,57 +15,51 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-Cosco cosco_;
+std::unique_ptr<Cosco> cosco_;
 
 /**
  * @brief Constructor for the costco publisher, declare the publishers on the
  * topics and read data from serial
  */
-
 CostcoPublisher::CostcoPublisher() : Node("costco_publisher") {
 
     RCLCPP_INFO(this->get_logger(), "Creating CostcoPublisher");
+
+    this->declare_parameter<std::string>("port_name", "");
+    std::string port_name = this->get_parameter("port_name").as_string();
+    RCLCPP_INFO(this->get_logger(), "port_name: %s", port_name.c_str());
+    cosco_ = std::make_unique<Cosco>(port_name, 115200);
 
     // Instantiate the publishers
     this->servo_response_ = this->create_publisher<custom_msg::msg::ServoResponse>("/EL/servo_response", 10);
     this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);
     this->mass_packet_ = this->create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", 10);
+    this->four_in_one_ = this->create_publisher<custom_msg::msg::FourInOne>("/EL/four_in_one_packet", 10);
+    this->heartbeat_ = this->create_publisher<custom_msg::msg::Heartbeat>("/EL/heartbeat_packet", 10);
 
     servo_response_pub = this->servo_response_;
     dust_pub = this->dust_sensor_;
     mass_pub = this->mass_packet_;
+    fourinone_pub = this->four_in_one_;
+    heartbeat_pub = this->heartbeat_;
 
-    register_cosco_callbacks();
-
-    /*
-        this below ensures the serial thread is safely called when
-        serial data is available.
-        it replaces the old timer_callback() that was bound to the 
-        publisher
-    */
     running_ = true;
     serial_thread_ = std::thread([this]() {
-        int fd = cosco_.get_fd();
-        if (fd < 0) {
-            RCLCPP_ERROR(this->get_logger(), "Invalid serial FD");
-            return;
-        }
-
         while (running_) {
-            fd_set read_fds;
-            FD_ZERO(&read_fds);
-            FD_SET(fd, &read_fds);
-
-            struct timeval timeout;
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 20000;  // 20ms, similar to old timer
-
-            int ret = select(fd + 1, &read_fds, NULL, NULL, &timeout);
-            if (ret > 0 && FD_ISSET(fd, &read_fds)) {
-                cosco_.receive();
+            try {
+                /* Blocks until one complete, CRC-valid frame arrives.
+                On success Cosco immediately calls the corresponding
+                callback. */
+                cosco_->readOne();
+            }
+            catch (const std::exception &e) {
+                RCLCPP_ERROR(this->get_logger(),
+                            "Serial error in readOne(): %s", e.what());
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
         }
     });
+
 }
 
 /**

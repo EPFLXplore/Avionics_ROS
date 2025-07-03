@@ -10,10 +10,14 @@
 #include <packet_id.hpp>
 
 struct LEDMessage {
-    uint8_t low;
-    uint8_t high;
     uint8_t system;
-    uint8_t mode;
+    uint8_t state;
+};
+
+struct MassRequest {
+    uint8_t id;
+    bool tare;
+    float scale;
 };
 
 struct DustData {
@@ -56,11 +60,14 @@ struct NPK {
     uint16_t potassium;
 };
 
+struct Heartbeat {
+    uint8_t dummy;
+};
+
 struct BMS {
     std::string status;
     float v_bat;
     float current;
-    uint32_t voltages[4];
 };
 
 struct MassPacket {

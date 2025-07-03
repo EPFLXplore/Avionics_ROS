@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 import os
 from glob import glob
 
-package_name = 'avionics_BMS_new'
+package_name = 'python_node'
 
 setup(
     name=package_name,
@@ -23,7 +23,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'bms_publisher = avionics_BMS_new.avionics_BMS_new:main'
+            'python_publisher = python_node.python_node:main'
         ],
     },
 )

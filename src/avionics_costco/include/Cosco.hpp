@@ -1,74 +1,64 @@
 /**
  * @file Cosco.hpp
  * @author Eliot Abramo
-*/
+ * @brief 
+ * @date 2025-07-03
+ */
+
 #ifndef COSCO_HPP
 #define COSCO_HPP
 
+#include <vector>
 #include "packet_definition.hpp"
 #include "packet_id.hpp"
-#include "serial_protocol.hpp"
+#include "SerialProtocol.hpp"
+#include "SerialDriver.hpp"
 
+#include <rclcpp/rclcpp.hpp>
+#include <custom_msg/msg/heartbeat.hpp>
+#include <custom_msg/msg/servo_response.hpp>
+#include <custom_msg/msg/dust_data.hpp>
+#include <custom_msg/msg/mass_packet.hpp>
+#include <custom_msg/msg/four_in_one.hpp>
+
+extern rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
+extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
+extern rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
+extern rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
+extern rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_pub;
 
 class Cosco {
 public:
-    /**
-     * @brief Create a new Cosco Object
-     */
-    Cosco();
-    
-    /**
-     * @brief Destroys a Cosco Object. Should unalocate any pointers and memory used up in class
-     */    
-    ~Cosco();
+    Cosco(const std::string &port, int baud=115200);
+    ~Cosco(){};
 
-    /**
-     * @brief Send mass data  packet
-     * 
-     * @param configPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendMassPacket(MassPacket *responsePacket);
+    // Send to ESP32
+    void sendMassRequest(const MassRequest* data, uint8_t ID);
+    void sendDust(const DustData* data);
+    void sendServo(const ServoRequest* data, uint8_t ID);
+    void sendLED(const LEDMessage* data);
 
-    /**
-     * @brief Send mass configuration packet
-     * 
-     * @param requestPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendServoRequestPacket(ServoRequest* requestPacket);
+    void readOne();
 
-    /**
-     * @brief Send mass configuration response packet
-     * 
-     * @param responsePacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendServoCamResponse(ServoResponse* pkt);
-    void sendServoDrillResponse(ServoResponse* pkt);
-
-    /**
-     * @brief Send sensor data packet
-     * 
-     * @param dataPacket: pointer to packet to be sent. Defined in Packets->->packet_definition.hpp
-     * @return null 
-     */
-    void sendDustDataPacket(DustData *dataPacket);
-
-    int get_fd() const;
-
-    /**
-     * @brief functions that receive commands  
-     * 
-     * @param configPacket 
-     * @param requestPacket 
-     * @param responsePacket 
-     * @return null
-     */    
-    void receive();
+    template<typename T>
+    bool as(const uint8_t* pl, uint16_t len, T& out){
+        if (len != sizeof(T)) return false;
+        std::memcpy(&out, pl, len);
+        return true;
+    }
 
 private:
-    int fd;
+    PosixSerial serial_;
+    SerialProtocol<128> proto_;
+
+    // Handle ROS
+    void mass_packet_handle(MassPacket* mp);
+    void dust_handle(DustData* d);
+    void servo_response_handle(ServoResponse* data);
+    void fourinone_handle(FourInOne* data);
+    void servo_request_handle(ServoRequest* data);
+    void heartbeat_handle(Heartbeat* data);    
+    void send_ROS(const typename SerialProtocol<128>::Frame &f);
 };
 
 #endif /* COSCO_HPP */

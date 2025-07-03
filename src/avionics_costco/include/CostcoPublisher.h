@@ -1,6 +1,6 @@
 /**
  * @file CostcoPublisher.h
- * @author Matas Jones
+ * @author Eliot Abramo, Matas Jones
  *
  * @brief CostcoPublisher is the cost effective communication module between ROS
  * and the sensors It recieves data from the sensors via serial and sends this
@@ -21,6 +21,7 @@
 #include "custom_msg/msg/dust_data.hpp"
 #include "custom_msg/msg/four_in_one.hpp"
 #include "custom_msg/msg/mass_packet.hpp"
+#include "custom_msg/msg/heartbeat.hpp"
 
 // Create the CostcoPublisher class, it is used to setup the topics and the
 // handles
@@ -41,6 +42,7 @@ private:
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
   rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_packet_;
   rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
+  rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_;
 
   // Create a timer to read the data from the serial
   rclcpp::TimerBase::SharedPtr timer_;
@@ -49,10 +51,6 @@ private:
   std::atomic<bool> running_;
 
   // Declare the different handle functions
-  /**
-   * these below will probably be deleted soon
-   */
-
   void mass_packet_handle(int *data);
   void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);

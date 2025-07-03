@@ -56,7 +56,7 @@ add_executable(avionics_costco
   src/CostcoMain.cpp
   src/CostcoSubscriber.cpp
   src/Cosco.cpp
-  src/serial_protocol.cpp
+  src/SerialDriver.cpp
 )
 
 target_link_libraries(avionics_costco
