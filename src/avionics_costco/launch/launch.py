@@ -48,13 +48,13 @@ def generate_launch_description():
         ]
     )
 
-    # python_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource(
-    #         [os.path.join(
-    #         get_package_share_directory('python_node'), 'launch'
-    #         ), '/python_launch.py']
-    #     )
-    # )
+    python_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            [os.path.join(
+            get_package_share_directory('python_node'), 'launch'
+            ), '/python_launch.py']
+        )
+    )
 
     # Declare all the steps of the launch file process
     return LaunchDescription([
