@@ -2,6 +2,10 @@
  * @file packet_id.hpp
  * @author Eliot Abramo
 */
+
+#ifndef PACKET_ID_HPP
+#define PACKET_ID_HPP
+
 #include <iostream>
 #include "packet_definition.hpp"
 
@@ -31,3 +35,5 @@
 #define DustData_ID 15
 
 #define Heartbeat_ID 20
+
+#endif /*PACKET_ID_HPP*/

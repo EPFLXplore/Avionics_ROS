@@ -179,12 +179,13 @@ class PythonPublisher(Node):
         msg_4in1 = FourInOne()
         msg_4in1.id = id
         msg_4in1.temperature = round(float(temperature),1)
-        msg_4in1.moisture = round(float(humidity),1)
+        msg_4in1.humidity = round(float(humidity),1)
         msg_4in1.conductivity = round(float(ec),0) 
         msg_4in1.ph = round(float(ph),1)
         self.publisher_4in1.publish(msg_4in1)
 
 
+# "{state = 0, system = 0}"
 class PythonSubscriber(Node):
     def __init__(self):
         super().__init__('python_subscriber')

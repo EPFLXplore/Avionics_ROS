@@ -19,12 +19,12 @@ Cosco::Cosco(const std::string &port, int baud) : serial_(port, baud), proto_(se
     if(!serial_.ok()) throw std::runtime_error("Serial open failed");
 }
 
-void Cosco::sendMassRequest(const MassRequest* data, uint8_t ID){
-    if(ID == MassDrill_ID){ // Drill
-        proto_.send(MassDrill_Request_ID,data,sizeof(MassRequest)); 
-    }else if(ID == MassHD_ID){ // HD
-        proto_.send(MassHD_Request_ID,data,sizeof(MassRequest)); 
-    }
+void Cosco::sendMassRequestHD(const MassRequestHD* data){
+    proto_.send(MassHD_Request_ID,data,sizeof(MassRequestHD)); 
+}
+
+void Cosco::sendMassRequestDrill(const MassRequestDrill* data){
+    proto_.send(MassDrill_Request_ID, data,sizeof(MassRequestDrill)); 
 }
 
 void Cosco::sendDust(const DustData* data){
@@ -37,10 +37,6 @@ void Cosco::sendServo(const ServoRequest* data, uint8_t ID){
     }else if(ID == 2){
         proto_.send(ServoDrill_ID,data,sizeof(ServoRequest));
     }
-}
-
-void Cosco::sendLED(const LEDMessage* data){
-    proto_.send(LED0_ID,data,sizeof(LEDMessage));
 }
 
 void Cosco::readOne() {
@@ -61,20 +57,6 @@ void Cosco::mass_packet_handle(MassPacket* data) {
     }
 
     std::cout<< "[MassData] Send mass pub to /EL/mass_packet" << std::endl;
-}
-
-void Cosco::fourinone_handle(FourInOne* data) {
-    auto ros_msg = custom_msg::msg::FourInOne();
-
-    ros_msg.id = data->id;
-    ros_msg.temperature = data->temperature;
-    ros_msg.moisture = data->moisture;
-    ros_msg.conductivity = data->conductivity;
-    ros_msg.ph = data->ph;
-
-    fourinone_pub->publish(ros_msg);
-    std::cout<< "[4in1] Send 4in1 pub to /EL/four_in_one_packet" << std::endl;
-
 }
 
 void Cosco::dust_handle(DustData* data) {

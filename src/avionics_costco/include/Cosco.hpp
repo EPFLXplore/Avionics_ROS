@@ -33,10 +33,10 @@ public:
     ~Cosco(){};
 
     // Send to ESP32
-    void sendMassRequest(const MassRequest* data, uint8_t ID);
+    void sendMassRequestHD(const MassRequestHD* data);
+    void sendMassRequestDrill(const MassRequestDrill* data);
     void sendDust(const DustData* data);
     void sendServo(const ServoRequest* data, uint8_t ID);
-    void sendLED(const LEDMessage* data);
 
     void readOne();
 
@@ -55,7 +55,6 @@ private:
     void mass_packet_handle(MassPacket* mp);
     void dust_handle(DustData* d);
     void servo_response_handle(ServoResponse* data);
-    void fourinone_handle(FourInOne* data);
     void servo_request_handle(ServoRequest* data);
     void heartbeat_handle(Heartbeat* data);    
     void send_ROS(const typename SerialProtocol<128>::Frame &f);
