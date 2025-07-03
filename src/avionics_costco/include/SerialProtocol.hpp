@@ -3,10 +3,6 @@
  * @author Eliot Abramo
  * 
  * @brief Implements a simple serial protocol for framing, sending, and receiving packets with CRC16 error checking.
- * This template class provides methods to send and receive framed data packets over a generic stream interface.
- * Each packet includes a start-of-frame marker, length, packet ID, payload, and CRC16 checksum for integrity.
- * The protocol supports incremental byte-wise parsing and validates frames before making them available.
- *
  * @date 2025-07-03
  */
 
@@ -26,7 +22,7 @@
  *  | 0xA5 (STX) | 0x5A       | uint16 len     | uint8 id | payload[len-1] | CRC16   |
  *  +------------+------------+----------------+----------+----------------+---------+
  *  - len counts *id + payload* (so min len=1). CRC is X25/Modbus (poly 0xA001).
- *
+ * 
  *  Typical use on the transmitting side:
  *      SerialProtocol<128> proto(Serial);
  *      MyPacket pkt{ ... };
