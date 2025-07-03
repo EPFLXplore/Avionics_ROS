@@ -33,19 +33,16 @@ RUN apt-get update && apt-get install -y git-core bash-completion \
 # Clean up
 RUN rm -rf /var/lib/apt/lists/*
 
-# Install ROS 2 Nav packages
 RUN apt-get update && apt-get upgrade -y
 RUN apt-get install -y --no-install-recommends
+RUN ACCEPT_EULA=Y apt install -y ubuntu-restricted-extras
+RUN apt-get update && apt-get install -y libserialport-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev
 
-RUN apt-get update && apt-get install -y libserialport-dev
-
-# Add USB rules
-RUN echo 'SUBSYSTEM=="usb", ATTRS{idVendor}=="03e7", MODE="0666"' | sudo tee /etc/udev/rules.d/80-movidius.rules
-RUN /etc/init.d/udev restart
+RUN python3 -m pip install numpy pymodbus pyserial
 
 USER $USERNAME
-RUN pip3 install pymodbus 
-RUN pip3 install pyserial
+
+RUN python3 -m pip install numpy pymodbus pyserial
 
 # Set a diretory to store the project
 WORKDIR /home/$USERNAME/dev_ws/src

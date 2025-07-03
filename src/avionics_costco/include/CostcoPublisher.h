@@ -15,6 +15,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
 #include <atomic>
+#include "Cosco.hpp"
 
 // Include the custom messages
 #include "custom_msg/msg/servo_response.hpp"
