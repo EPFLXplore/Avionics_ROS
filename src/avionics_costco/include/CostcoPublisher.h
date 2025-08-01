@@ -51,7 +51,6 @@ private:
 
   // Declare the different handle functions
   void mass_packet_handle(int *data);
-  void four_in_one_handle(int *data);
   void dust_sensor_handle(int *data);
 };
 

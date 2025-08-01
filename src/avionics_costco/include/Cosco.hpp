@@ -19,12 +19,10 @@
 #include <custom_msg/msg/servo_response.hpp>
 #include <custom_msg/msg/dust_data.hpp>
 #include <custom_msg/msg/mass_packet.hpp>
-#include <custom_msg/msg/four_in_one.hpp>
 
 extern rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
 extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 extern rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
-extern rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 extern rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_pub;
 
 class Cosco {

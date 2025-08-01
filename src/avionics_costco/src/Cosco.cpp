@@ -12,7 +12,6 @@
 rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
 rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
-rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr fourinone_pub;
 rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_pub;
 
 Cosco::Cosco(const std::string &port, int baud) : serial_(port, baud), proto_(serial_) {
