@@ -59,7 +59,7 @@ def generate_launch_description():
     # Declare all the steps of the launch file process
     return LaunchDescription([
         logger_declaration,
-        Costco_node_avionics
-        # python_launch
+        Costco_node_avionics,
+        python_launch
         ]
     )
