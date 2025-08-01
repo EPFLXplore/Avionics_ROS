@@ -20,7 +20,6 @@
 // Include the custom messages
 #include "custom_msg/msg/servo_response.hpp"
 #include "custom_msg/msg/dust_data.hpp"
-#include "custom_msg/msg/four_in_one.hpp"
 #include "custom_msg/msg/mass_packet.hpp"
 #include "custom_msg/msg/heartbeat.hpp"
 
@@ -42,7 +41,6 @@ private:
   rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_;
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
   rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_packet_;
-  rclcpp::Publisher<custom_msg::msg::FourInOne>::SharedPtr four_in_one_;
   rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_;
 
   // Create a timer to read the data from the serial
