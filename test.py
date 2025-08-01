@@ -1,0 +1,51 @@
+import minimalmodbus
+import time
+
+PORT='ttyUSB0'
+
+HUM_REGISTER = 0
+TEMP_REGISTER = 1
+EC_REGISTER = 2
+PH_REGISTER = 3
+
+#Set up instrument
+instrument = minimalmodbus.Instrument(PORT,1,mode=minimalmodbus.MODE_RTU)
+
+#Make the settings explicit
+instrument.serial.baudrate = 9600        # Baud
+instrument.serial.bytesize = 8
+instrument.serial.parity   = minimalmodbus.serial.PARITY_NONE
+instrument.serial.stopbits = 1
+instrument.serial.timeout  = 1          # seconds
+
+# Good practice
+instrument.close_port_after_each_call = True
+
+instrument.clear_buffers_before_each_transaction = True
+   
+def processing_file(csvfile): 
+    while True:
+        # Read the values
+        try:
+            # Read the values
+            # if you need to read a 16 bit register use instrument.read_register()
+            temperature = instrument.read_register(TEMP_REGISTER, number_of_decimals=1)
+
+            humidity = instrument.read_register(HUM_REGISTER, number_of_decimals=1)
+            
+            ec = instrument.read_register(EC_REGISTER)
+
+            # Read the humidity
+            ph = instrument.read_register(PH_REGISTER, number_of_decimals=1)
+            #Pront the values
+            print('--------------------------------')
+            print('The temperature is: %.1f deg C\r' % temperature)
+            print('The humidity is: %.1f percent\r' % humidity)
+            print('The ec is: %.1f deg C\r' % ec)
+            print('The pH is: %.1f percent\r' % ph)
+            print('--------------------------------')
+            # Write the values to the csv file
+
+        except Exception as e:
+            print("Error: ", e)
+        time.sleep(2)
