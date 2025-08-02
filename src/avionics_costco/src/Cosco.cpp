@@ -7,6 +7,7 @@
  */
 
 #include "Cosco.hpp"
+#include "CsvMessageLogger.hpp"
 
 // bound at runtime in CoscoPublisher
 rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
@@ -52,6 +53,7 @@ void Cosco::mass_packet_handle(MassPacket* data) {
     ros_msg.mass = data->mass;
 
     if (mass_pub) {
+        CSV_LOG_CAT("MASS", ros_msg); 
         mass_pub->publish(ros_msg);
     }
 
@@ -74,6 +76,7 @@ void Cosco::dust_handle(DustData* data) {
     ros_msg.num_particles_10 = data->num_particles_10;
 
     if (dust_pub) {
+        CSV_LOG_CAT("DUST", ros_msg); 
         dust_pub->publish(ros_msg);
     }
     std::cout << "[DustData] Published to /EL/dust_sensor" << std::endl;

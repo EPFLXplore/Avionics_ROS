@@ -1,15 +1,62 @@
 import datetime
-import numpy as np
 import rclpy
 from rclpy.node import Node
-from pymodbus.client import ModbusSerialClient
 import minimalmodbus
 import serial
 import time
 import os
+import struct 
 
 from rclpy.executors import MultiThreadedExecutor
 from custom_msg.msg import BMS, FourInOne, LEDMessage
+
+# --------------------------------------------------------------------------- #
+#  CSV message logger (thread‑safe, one‑liner use)                            #
+# --------------------------------------------------------------------------- #
+import csv, threading, pathlib, datetime, inspect
+try:
+    from rosidl_runtime_py.utilities import message_to_yaml as _to_yaml
+except ImportError:  # fallback
+    def _to_yaml(msg): return str(msg)
+
+class _CsvMessageLogger:
+    """Singleton that appends rows like
+         category,timestamp,callback,data
+    to ~/python_messages.csv. Thread‑safe and keeps file open."""
+    _instance = None
+    _lock = threading.Lock()
+
+    def __new__(cls):
+        if cls._instance is None:
+            with cls._lock:
+                if cls._instance is None:
+                    cls._instance = super().__new__(cls)
+                    cls._instance._init()
+        return cls._instance
+
+    def _init(self):
+        path = pathlib.Path.home() / 'python_messages.csv'
+        self._file = path.open('a', newline='', buffering=1)
+        self._csv = csv.writer(self._file)
+        if path.stat().st_size == 0:
+            self._csv.writerow(['category', 'timestamp', 'callback', 'data'])
+        self._row_lock = threading.Lock()
+
+    def log(self, category: str, callback_name: str, msg):
+        with self._row_lock:
+            self._csv.writerow([
+                category,
+                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                callback_name,
+                _to_yaml(msg)
+            ])
+            self._file.flush()
+
+def CSV_LOG_CAT(category: str, msg):
+    cb_name = inspect.currentframe().f_back.f_code.co_name
+    _CsvMessageLogger().log(category, cb_name, msg)
+# --------------------------------------------------------------------------- #
+
 
 usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI !
 usb_port_4in1 = '/dev/tty4in1' # BOTTOM LEFT
@@ -18,8 +65,9 @@ usb_port_leds = '/dev/ttyESP32_LED' # TOP LEFT
 # 4in1 register definitions
 HUM_REGISTER = 0
 TEMP_REGISTER = 1
-EC_REGISTER = 2
-PH_REGISTER = 3
+EC_REGISTER   = 2
+PH_REGISTER   = 3
+
 
 class PythonPublisher(Node):
     def __init__(self):
@@ -27,18 +75,14 @@ class PythonPublisher(Node):
         self.publisher_bms = self.create_publisher(BMS, '/EL/bms_topic', 10)
         self.publisher_4in1 = self.create_publisher(FourInOne, '/EL/four_in_one_packet', 10)
 
-        timer_period = 1  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(1, self.timer_callback) # 1 Hz
 
-        # BMS Setup
-        self.usb_port_bms = usb_port_bms
-        self.client_bms = None
+        # TinyBMS state
+        self.bms_serial = None
         self.bms_available = False
         self.bms_reconnect_counter = 0
-        self.bms_reconnect_interval = 2 
+        self.bms_reconnect_interval = 2
         self.try_connect_bms()
-        self.read_BMS()
-        self.try_reconnect_bms()
 
         # 4in1 Setup
         self.usb_port_4in1 = usb_port_4in1
@@ -47,68 +91,104 @@ class PythonPublisher(Node):
         self.FourinOne_reconnect_counter = 0
         self.FourinOne_reconnect_interval = 2 
         self.try_connect_4in1()
-        self.read_4in1()
-        self.try_reconnect_4in1()
-    
-    def try_connect_bms(self):
-        try:
-            self.client_bms = ModbusSerialClient(port=self.usb_port_bms, timeout=2, baudrate=115200)
-            if self.client_bms.connect():
-                self.get_logger().info("Connected to BMS device.")
-                self.bms_available = True
-            else:
-                self.get_logger().warn("Failed to connect to BMS device.")
-                self.bms_available = False
-        except Exception as e:
-            self.get_logger().error(f"Exception during BMS connect: {e}")
-            self.client_bms = None
-            self.bms_available = False
 
-    def try_reconnect_bms(self):
-        self.get_logger().info("Attempting to reconnect to Modbus device...")
-        self.try_connect_bms()
+    # ---------------------- TinyBMS helpers ---------------------- #
+    @staticmethod
+    def crc16(data: bytes) -> int:
+        """CRC‑16/Modbus (poly 0x8005, init 0xFFFF, reflected)."""
+        crc = 0xFFFF
+        for b in data:
+            crc ^= b
+            for _ in range(8):
+                if crc & 0x0001:
+                    crc = (crc >> 1) ^ 0xA001
+                else:
+                    crc >>= 1
+        return crc
 
-    def read_registers(self, address, count, slave_id):
-        if not self.client_bms:
-            raise Exception("BMS Client is not initialized.")
-        response = self.client_bms.read_holding_registers(address=address, count=count, slave=slave_id)
-        if response.isError():
-            raise Exception(f"BMS Error reading registers at address {address}: {response}")
-        return response.registers
+    def _tx_frame(self, cmd: int):
+        frame = bytearray([0xAA, cmd])
+        crc = self.crc16(frame)
+        frame += bytes([crc & 0xFF, crc >> 8])
+        self.bms_serial.write(frame)
+        self.bms_serial.flush()
+
+    def send_cmd(self, cmd: int, resp_len: int) -> bytes:
+        self.bms_serial.reset_input_buffer()
+
+        attempts = 2  # first = normal, second = wake‑up if needed
+        for attempt in range(attempts):
+            self._tx_frame(cmd)
+            start = time.monotonic()
+            while time.monotonic() - start < self.bms_serial.timeout:
+                hdr = self.bms_serial.read(2)
+                if len(hdr) < 2:
+                    continue 
+                if hdr[0] != 0xAA:
+                    continue  # garbage, keep scanning
+                payload_cmd = hdr[1]
+                # Determine expected total length for this incoming packet
+                if payload_cmd in (0x14, 0x15):  
+                    total_len = 8
+                elif payload_cmd == 0x18:       
+                    total_len = 6
+                else:
+                    continue
+                rest = self.bms_serial.read(total_len - 2)
+                if len(rest) != total_len - 2:
+                    break 
+                packet = hdr + rest
+                # CRC check
+                if self.crc16(packet[:-2]) != (packet[-2] | (packet[-1] << 8)):
+                    continue  # bad CRC, ignore
+                if payload_cmd == cmd:
+                    return packet  # success
+        raise TimeoutError(f"TinyBMS: no valid response to 0x{cmd:02X}")
 
     def read_BMS(self):
+        """Query voltage, current, and status from TinyBMS in one shot."""
+        if not self.bms_serial:
+            raise RuntimeError("BMS serial not open")
+
+        # Voltage (cmd 0x14)
+        v_pkt = self.send_cmd(0x14, 8)
+        v_bat = struct.unpack('<f', v_pkt[2:6])[0]
+
+        # Current (cmd 0x15)
+        i_pkt = self.send_cmd(0x15, 8)
+        pack_current = struct.unpack('<f', i_pkt[2:6])[0]
+
+        # Online status (cmd 0x18)
+        s_pkt = self.send_cmd(0x18, 6)
+        status_code = s_pkt[2] | (s_pkt[3] << 8)
+
+        status_map = {
+            0x91: "Charging",
+            0x92: "Fully‑Charged",
+            0x93: "Discharging",
+            0x96: "Regeneration",
+            0x97: "Idle",
+            0x9B: "Fault"
+        }
+        status = status_map.get(status_code, f"0x{status_code:04X}")
+        return (v_bat, status, pack_current)
+
+    def try_connect_bms(self):
         try:
-            # registers = self.read_registers(51, 16, slave_id=0xAA)
-            # balance = '{:016b}'.format(registers[0]) if registers else '0'*16
- 
-            registers = self.read_registers(38, 2, slave_id=0xAA)
-            current = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0]) if registers else 0.0
-
-            registers = self.read_registers(36, 2, slave_id=0xAA)
-            v_bat = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0]) if registers else 0.0
-
-            registers = self.read_registers(50, 1, slave_id=0xAA)
-            match registers[0]:
-                case 0x91:
-                    status= "Charging"
-                case 0x92:
-                    status="Fully-Charged"
-                case 0x93:
-                    status = "Discharging"
-                case 0x96:
-                    status ="Regeneration"
-                case 0x97:
-                    status ="Idle"
-                case 0x9B:
-                    status ="Fault"
-                case _ :
-                    status = "comm err"
-            return (v_bat,status,current)
-
+            self.bms_serial = serial.Serial(
+                port=usb_port_bms,
+                baudrate=115200,
+                bytesize=8,
+                parity=serial.PARITY_NONE,
+                stopbits=1,
+                timeout=1
+            )
+            self.get_logger().info("Connected to TinyBMS serial port.")
+            self.bms_available = True
         except Exception as e:
-            self.get_logger().warn(f"BMS Error during update: {e}")
+            self.get_logger().warn(f"Failed to open BMS serial port: {e}")
+            self.bms_serial = None
             self.bms_available = False
-            return (0.0, "disconnected", 0.0)
 
     def try_connect_4in1(self):
         try:
@@ -132,10 +212,10 @@ class PythonPublisher(Node):
 
     def read_4in1(self):
         try:
-            temperature = self.instrument_4in1.read_register(TEMP_REGISTER, number_of_decimals=1)
-            humidity = self.instrument_4in1.read_register(HUM_REGISTER, number_of_decimals=1)
+            temperature = self.instrument_4in1.read_register(TEMP_REGISTER, number_of_decimals=2)
+            humidity = self.instrument_4in1.read_register(HUM_REGISTER, number_of_decimals=2)
             ec = self.instrument_4in1.read_register(EC_REGISTER)
-            ph = self.instrument_4in1.read_register(PH_REGISTER, number_of_decimals=1)
+            ph = self.instrument_4in1.read_register(PH_REGISTER, number_of_decimals=2)
             return (temperature, humidity, ec, ph)
         except Exception as e:
             self.get_logger().warn(f"4in1 sensor read error: {e}")
@@ -143,7 +223,7 @@ class PythonPublisher(Node):
             return None
 
     def try_reconnect_4in1(self):
-        self.get_logger().info("Attempting to reconnect to Modbus device...")
+        self.get_logger().info("Attempting to reconnect to 4in1 device...")
         self.try_connect_4in1()
 
     def timer_callback(self):
@@ -151,7 +231,7 @@ class PythonPublisher(Node):
             self.bms_reconnect_counter += 1
             if self.bms_reconnect_counter >= self.bms_reconnect_interval:
                 self.bms_reconnect_counter = 0
-                self.try_reconnect_bms()
+                self.try_connect_bms()
 
         if not self.FourinOne_available:
             self.FourinOne_reconnect_counter += 1
@@ -159,9 +239,11 @@ class PythonPublisher(Node):
                 self.FourinOne_reconnect_counter = 0
                 self.try_reconnect_4in1()
 
-        if(self.bms_available):
-            v_bat,status,current = self.read_BMS()
-        else:
+        # Read & publish BMS
+        try:
+            v_bat, status, current = self.read_BMS() if self.bms_available else (0.0, "disconnected", 0.0)
+        except Exception as e:
+            self.get_logger().warn(f"BMS read error: {e}")
             v_bat, status, current = 0.0, "disconnected", 0.0
 
         msg_bms = BMS()
@@ -182,16 +264,15 @@ class PythonPublisher(Node):
         msg_4in1.humidity = round(float(humidity),1)
         msg_4in1.conductivity = round(float(ec),0) 
         msg_4in1.ph = round(float(ph),1)
+        CSV_LOG_CAT("FourInOne", msg_4in1)
         self.publisher_4in1.publish(msg_4in1)
 
-
-# "{state = 0, system = 0}"
 class PythonSubscriber(Node):
     def __init__(self):
         super().__init__('python_subscriber')
         self.subscription = self.create_subscription(LEDMessage,'/EL/LedCommands',
                                                      self.leds_callback, 10)
-        self.subscription  # prevent unused variable warning
+        self.subscription 
         self.port = usb_port_leds
         self.serial = None
         self.open_serial_port()
@@ -240,7 +321,6 @@ class PythonSubscriber(Node):
         else:
             self.get_logger().error("Serial port is not open. Cannot send LED message.")
             self.open_serial_port()
-
 
 
 def main(args=None):
