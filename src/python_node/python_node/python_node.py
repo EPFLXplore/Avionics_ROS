@@ -7,7 +7,6 @@ import time
 import os
 import struct 
 
-from rclpy.executors import MultiThreadedExecutor
 from custom_msg.msg import BMS, FourInOne, LEDMessage
 
 # --------------------------------------------------------------------------- #
@@ -326,7 +325,12 @@ class PythonSubscriber(Node):
 def main(args=None):
     rclpy.init(args=args)
 
+    executor = rclpy.executors.MultiThreadedExecutor()
     python_pub = PythonPublisher() 
-    rclpy.spin(python_pub)
-    python_pub.destroy_node()
+    python_sub = PythonSubscriber()
+
+    executor.add_node(python_pub)
+    executor.add_node(python_sub)
+
+    executor.spin()
     rclpy.shutdown()
