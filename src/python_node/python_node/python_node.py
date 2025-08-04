@@ -312,7 +312,7 @@ class PythonSubscriber(Node):
                     mode = 3  # Blinking
                     self.get_logger().info("Blinking LEDs.")
 
-                led_message = f"0 100 {msg.system} {mode}\n"
+                led_message = f"{msg.emergency_global} {msg.emergency_motors} {msg.system} {mode}\n"
                 self.serial.write(led_message.encode('ascii'))
                 self.get_logger().info("LED message sent successfully.")
                 
