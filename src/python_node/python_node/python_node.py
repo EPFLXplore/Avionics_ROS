@@ -170,6 +170,9 @@ class PythonPublisher(Node):
             0x9B: "Fault"
         }
         status = status_map.get(status_code, f"0x{status_code:04X}")
+        if(status == "Idle"):
+            current = 0.0
+
         return (v_bat, status, pack_current)
 
     def try_connect_bms(self):
@@ -211,10 +214,10 @@ class PythonPublisher(Node):
 
     def read_4in1(self):
         try:
-            temperature = self.instrument_4in1.read_register(TEMP_REGISTER, number_of_decimals=2)
-            humidity = self.instrument_4in1.read_register(HUM_REGISTER, number_of_decimals=2)
+            temperature = self.instrument_4in1.read_register(TEMP_REGISTER, number_of_decimals=1)
+            humidity = self.instrument_4in1.read_register(HUM_REGISTER, number_of_decimals=1)
             ec = self.instrument_4in1.read_register(EC_REGISTER)
-            ph = self.instrument_4in1.read_register(PH_REGISTER, number_of_decimals=2)
+            ph = self.instrument_4in1.read_register(PH_REGISTER, number_of_decimals=1)
             return (temperature, humidity, ec, ph)
         except Exception as e:
             self.get_logger().warn(f"4in1 sensor read error: {e}")
@@ -276,9 +279,7 @@ class PythonSubscriber(Node):
         self.serial = None
         self.open_serial_port()
         self.get_logger().info("LED Subscriber node initialized and subscribing to /EL/LedCommands")
-
    
-
     def open_serial_port(self):
         try:
             self.serial = serial.Serial(self.port, baudrate=115200, timeout=1)
@@ -320,7 +321,6 @@ class PythonSubscriber(Node):
         else:
             self.get_logger().error("Serial port is not open. Cannot send LED message.")
             self.open_serial_port()
-
 
 def main(args=None):
     rclpy.init(args=args)
