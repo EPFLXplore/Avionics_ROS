@@ -145,7 +145,6 @@ class PythonPublisher(Node):
         raise TimeoutError(f"TinyBMS: no valid response to 0x{cmd:02X}")
 
     def read_BMS(self):
-        """Query voltage, current, and status from TinyBMS in one shot."""
         if not self.bms_serial:
             raise RuntimeError("BMS serial not open")
 
@@ -286,6 +285,10 @@ class PythonSubscriber(Node):
         msg_led.state = 6
         publisher_led.publish(msg_led)
 
+        msg_led = LEDMessage()
+        msg_led.system = 3
+        msg_led.state = 1
+        publisher_led.publish(msg_led)
    
     def open_serial_port(self):
         try:

@@ -10,8 +10,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='python_node',
-            executable='python_publisher', # What will be run, it is bms_publisher in avioncs_bms/bms_monitor.py -> main
-            name='python_publisher',
+            executable='python_node',
+            name='python_node',
             output='screen', # Allows to display logs in terminal
         )
     ])

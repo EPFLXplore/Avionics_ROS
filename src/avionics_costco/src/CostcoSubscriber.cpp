@@ -35,6 +35,13 @@ CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
           std::bind(&CostcoSubscriber::ServoRequestHandler, this,
                     std::placeholders::_1));
   
+  ServoRequest servoInit;
+  servoInit.id = 2;
+  servoInit.increment = -1000;
+  servoInit.zero_in = false;
+  cosco_sub->sendServo(&servoInit, servoInit.id);
+  // RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
+
   this->mass_request_hd_ =
     this->create_subscription<custom_msg::msg::MassRequestHD>(
         ("/EL/mass_req_hd"), 10,
@@ -64,10 +71,10 @@ void CostcoSubscriber::ServoRequestHandler(const custom_msg::msg::ServoRequest::
   servoRequesteMsg.id = msg->id;
   servoRequesteMsg.increment = msg->increment;
   servoRequesteMsg.zero_in = msg->zero_in;
-  RCLCPP_INFO(this->get_logger(), "Servo received");
+  // RCLCPP_INFO(this->get_logger(), "Servo received");
 
   cosco_sub->sendServo(&servoRequesteMsg, servoRequesteMsg.id);
-  RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
+  // RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
 }
 
 // Handle for the Servo message
@@ -75,10 +82,10 @@ void CostcoSubscriber::MassRequestHDHandler(const custom_msg::msg::MassRequestHD
   MassRequestHD MassRequesteMsg;
   MassRequesteMsg.scale = msg->scale;
   MassRequesteMsg.tare = msg->tare;
-  RCLCPP_INFO(this->get_logger(), "Mass Request received");
+  // RCLCPP_INFO(this->get_logger(), "Mass Request received");
 
   cosco_sub->sendMassRequestHD(&MassRequesteMsg);
-  RCLCPP_INFO(this->get_logger(), "Mass Request HD sent to ESP32");
+  // RCLCPP_INFO(this->get_logger(), "Mass Request HD sent to ESP32");
   // RCLCPP_INFO(this->get_logger(), "id: %u, scale: %f, tare: %d", MassRequesteMsg.id,MassRequesteMsg.scale,MassRequesteMsg.tare);
 }
 
@@ -86,9 +93,9 @@ void CostcoSubscriber::MassRequestDrillHandler(const custom_msg::msg::MassReques
   MassRequestDrill MassRequesteMsg;
   MassRequesteMsg.scale = msg->scale;
   MassRequesteMsg.tare = msg->tare;
-  RCLCPP_INFO(this->get_logger(), "Mass Request received");
+  // RCLCPP_INFO(this->get_logger(), "Mass Request received");
 
   cosco_sub->sendMassRequestDrill(&MassRequesteMsg);
-  RCLCPP_INFO(this->get_logger(), "Mass Request Drill sent to ESP32");
+  // RCLCPP_INFO(this->get_logger(), "Mass Request Drill sent to ESP32");
   // RCLCPP_INFO(this->get_logger(), "id: %u, scale: %f, tare: %d", MassRequesteMsg.id,MassRequesteMsg.scale,MassRequesteMsg.tare);
 }
