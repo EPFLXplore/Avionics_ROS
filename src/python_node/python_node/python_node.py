@@ -279,6 +279,13 @@ class PythonSubscriber(Node):
         self.serial = None
         self.open_serial_port()
         self.get_logger().info("LED Subscriber node initialized and subscribing to /EL/LedCommands")
+
+        publisher_led = self.create_publisher(LEDMessage, '/EL/LedCommands', 10)
+        msg_led = LEDMessage()
+        msg_led.system = 0
+        msg_led.state = 6
+        publisher_led.publish(msg_led)
+
    
     def open_serial_port(self):
         try:
@@ -295,24 +302,37 @@ class PythonSubscriber(Node):
 
         if self.serial != None:
             try:
+                mode = 6
                 # Prepare the LED message
                 if msg.system not in [0, 1, 2, 3]:
                     self.get_logger().error("Invalid system value. Must be 0, 1, 2, or 3.")
                     return
-                if msg.state not in [0, 1, 2]:
+                if msg.state not in [0, 1, 2, 3, 4, 5, 6]:
                     self.get_logger().error("Invalid state value. Must be 0, 1, or 2.")
                     return
                 if msg.state == 0:
-                    mode = 5  # Off
+                    mode = 0  # Off
                     self.get_logger().info("Turning off LEDs.")
                 elif msg.state == 1:
-                    mode = 0  # On
+                    mode = 1  # On
                     self.get_logger().info("Turning on LEDs.")
                 elif msg.state == 2:
-                    mode = 3  # Blinking
+                    mode = 2  # Blinking
+                    self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 3:
+                    mode = 3  # Fault
+                    self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 4:
+                    mode = 4  # Emergency Motors
+                    self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 5:
+                    mode = 5  # Emergency Shutdown
+                    self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 6:
+                    mode = 6  # All off
                     self.get_logger().info("Blinking LEDs.")
 
-                led_message = f"{msg.emergency_global} {msg.emergency_motors} {msg.system} {mode}\n"
+                led_message = f"0 1 {msg.system} {mode}\n"
                 self.serial.write(led_message.encode('ascii'))
                 self.get_logger().info("LED message sent successfully.")
                 
