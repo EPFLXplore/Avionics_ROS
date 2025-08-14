@@ -54,6 +54,17 @@ NexusSubscriber::NexusSubscriber() : Node("nexus_subscriber") {
       std::bind(&NexusSubscriber::MassRequestDrillHandler, this,
                 std::placeholders::_1));
 
+    MassRequestHD massHDtare;
+    massHDtare.tare = true;
+    massHDtare.scale = 0.0;
+    nexus_sub->sendMassRequestHD(&massHDtare);
+    nexus_sub->sendMassRequestHD(&massHDtare);
+
+    MassRequestDrill massDrilltare;
+    massDrilltare.tare = true;
+    massDrilltare.scale = 0.0;
+    nexus_sub->sendMassRequestDrill(&massDrilltare);
+    nexus_sub->sendMassRequestDrill(&massDrilltare);
 
 }
 
