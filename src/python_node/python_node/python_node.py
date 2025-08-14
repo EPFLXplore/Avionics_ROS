@@ -7,7 +7,7 @@ import time
 import os
 import struct 
 
-from custom_msg.msg import BMS, FourInOne, LEDMessage
+from custom_msg.msg import BMS, FourInOne, LEDMessage, ServoRequest
 
 usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI !
 usb_port_4in1 = '/dev/tty4in1' # BOTTOM LEFT
@@ -18,6 +18,9 @@ HUM_REGISTER = 0
 TEMP_REGISTER = 1
 EC_REGISTER   = 2
 PH_REGISTER   = 3
+
+ServoDrill_ID = 1
+ServoCam_ID = 3
 
 
 class PythonPublisher(Node):
@@ -42,6 +45,23 @@ class PythonPublisher(Node):
         self.FourinOne_reconnect_counter = 0
         self.FourinOne_reconnect_interval = 2 
         self.try_connect_4in1()
+
+        publisher_servo = self.create_publisher(ServoRequest, '/EL/servo_req', 10)
+        msg_servo_drill = ServoRequest()
+        msg_servo_cam = ServoRequest()
+
+        msg_servo_drill.id = ServoDrill_ID
+        msg_servo_cam.id = ServoCam_ID
+
+        msg_servo_drill.increment = -1000
+        msg_servo_cam.increment = 1000
+
+        msg_servo_drill.zero_in = False
+        msg_servo_cam.zero_in = False
+
+        publisher_servo.publish(msg_servo_drill)
+        publisher_servo.publish(msg_servo_cam)
+
 
     # ---------------------- TinyBMS helpers ---------------------- #
     @staticmethod
@@ -252,9 +272,9 @@ class PythonSubscriber(Node):
             self.serial = None
 
     def leds_callback(self, msg):
-        self.get_logger().info('Received LED message:')
-        self.get_logger().info('System "%s"' % msg.system)
-        self.get_logger().info('State "%s"' % msg.state)
+        # self.get_logger().info('Received LED message:')
+        # self.get_logger().info('System "%s"' % msg.system)
+        # self.get_logger().info('State "%s"' % msg.state)
 
         if self.serial != None:
             try:
@@ -290,7 +310,7 @@ class PythonSubscriber(Node):
 
                 led_message = f"0 1 {msg.system} {mode}\n"
                 self.serial.write(led_message.encode('ascii'))
-                self.get_logger().info("LED message sent successfully.")
+                # self.get_logger().info("LED message sent successfully.")
                 
             except serial.SerialException as e:
                 self.get_logger().error(f"Error writing to serial port: {e}")
