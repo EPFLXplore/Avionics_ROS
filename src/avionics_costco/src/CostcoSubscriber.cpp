@@ -54,6 +54,17 @@ CostcoSubscriber::CostcoSubscriber() : Node("costco_subscriber") {
       std::bind(&CostcoSubscriber::MassRequestDrillHandler, this,
                 std::placeholders::_1));
 
+    MassRequestHD massHDtare;
+    massHDtare.tare = true;
+    massHDtare.scale = 0.0;
+    cosco_sub->sendMassRequestHD(&massHDtare);
+    cosco_sub->sendMassRequestHD(&massHDtare);
+
+    MassRequestDrill massDrilltare;
+    massDrilltare.tare = true;
+    massDrilltare.scale = 0.0;
+    cosco_sub->sendMassRequestDrill(&massDrilltare);
+    cosco_sub->sendMassRequestDrill(&massDrilltare);
 
 }
 
