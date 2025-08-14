@@ -9,54 +9,6 @@ import struct
 
 from custom_msg.msg import BMS, FourInOne, LEDMessage
 
-# --------------------------------------------------------------------------- #
-#  CSV message logger (thread‑safe, one‑liner use)                            #
-# --------------------------------------------------------------------------- #
-import csv, threading, pathlib, datetime, inspect
-try:
-    from rosidl_runtime_py.utilities import message_to_yaml as _to_yaml
-except ImportError:  # fallback
-    def _to_yaml(msg): return str(msg)
-
-class _CsvMessageLogger:
-    """Singleton that appends rows like
-         category,timestamp,callback,data
-    to ~/python_messages.csv. Thread‑safe and keeps file open."""
-    _instance = None
-    _lock = threading.Lock()
-
-    def __new__(cls):
-        if cls._instance is None:
-            with cls._lock:
-                if cls._instance is None:
-                    cls._instance = super().__new__(cls)
-                    cls._instance._init()
-        return cls._instance
-
-    def _init(self):
-        path = pathlib.Path.home() / 'python_messages.csv'
-        self._file = path.open('a', newline='', buffering=1)
-        self._csv = csv.writer(self._file)
-        if path.stat().st_size == 0:
-            self._csv.writerow(['category', 'timestamp', 'callback', 'data'])
-        self._row_lock = threading.Lock()
-
-    def log(self, category: str, callback_name: str, msg):
-        with self._row_lock:
-            self._csv.writerow([
-                category,
-                datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                callback_name,
-                _to_yaml(msg)
-            ])
-            self._file.flush()
-
-def CSV_LOG_CAT(category: str, msg):
-    cb_name = inspect.currentframe().f_back.f_code.co_name
-    _CsvMessageLogger().log(category, cb_name, msg)
-# --------------------------------------------------------------------------- #
-
-
 usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI !
 usb_port_4in1 = '/dev/tty4in1' # BOTTOM LEFT
 usb_port_leds = '/dev/ttyESP32_LED' # TOP LEFT
@@ -191,6 +143,7 @@ class PythonPublisher(Node):
             self.bms_serial = None
             self.bms_available = False
 
+    # ---------------------- 4in1 helpers ---------------------- #
     def try_connect_4in1(self):
         try:
             self.instrument_4in1 = minimalmodbus.Instrument(self.usb_port_4in1, 1, mode=minimalmodbus.MODE_RTU)
@@ -227,6 +180,7 @@ class PythonPublisher(Node):
         self.get_logger().info("Attempting to reconnect to 4in1 device...")
         self.try_connect_4in1()
 
+    # ---------------------- Main Timer Callback ---------------------- #
     def timer_callback(self):
         if not self.bms_available:
             self.bms_reconnect_counter += 1
@@ -265,7 +219,6 @@ class PythonPublisher(Node):
         msg_4in1.humidity = round(float(humidity),1)
         msg_4in1.conductivity = round(float(ec),0) 
         msg_4in1.ph = round(float(ph),1)
-        CSV_LOG_CAT("FourInOne", msg_4in1)
         self.publisher_4in1.publish(msg_4in1)
 
 class PythonSubscriber(Node):
@@ -315,25 +268,25 @@ class PythonSubscriber(Node):
                     return
                 if msg.state == 0:
                     mode = 0  # Off
-                    self.get_logger().info("Turning off LEDs.")
+                    # self.get_logger().info("Turning off LEDs.")
                 elif msg.state == 1:
                     mode = 1  # On
-                    self.get_logger().info("Turning on LEDs.")
+                    # self.get_logger().info("Turning on LEDs.")
                 elif msg.state == 2:
                     mode = 2  # Blinking
-                    self.get_logger().info("Blinking LEDs.")
+                    # self.get_logger().info("Blinking LEDs.")
                 elif msg.state == 3:
                     mode = 3  # Fault
-                    self.get_logger().info("Blinking LEDs.")
+                    # self.get_logger().info("Blinking LEDs.")
                 elif msg.state == 4:
                     mode = 4  # Emergency Motors
-                    self.get_logger().info("Blinking LEDs.")
+                    # self.get_logger().info("Blinking LEDs.")
                 elif msg.state == 5:
                     mode = 5  # Emergency Shutdown
-                    self.get_logger().info("Blinking LEDs.")
+                    # self.get_logger().info("Blinking LEDs.")
                 elif msg.state == 6:
                     mode = 6  # All off
-                    self.get_logger().info("Blinking LEDs.")
+                    # self.get_logger().info("Blinking LEDs.")
 
                 led_message = f"0 1 {msg.system} {mode}\n"
                 self.serial.write(led_message.encode('ascii'))

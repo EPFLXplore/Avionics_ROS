@@ -5,7 +5,7 @@
 *
  * Each call to CSV_LOG_CAT("Dust", msg_ptr) (or "Servo"/"Mass") appends:
  *   category,timestamp,callback,data
- * into ~/cosco_messages.csv
+ * into ~/nexus_messages.csv
  *
  * If you omit the category, CSV_LOG(msg_ptr) falls back to "Unknown".
  */
@@ -89,7 +89,7 @@ private:
     {
         const char *home_env = std::getenv("HOME");
         std::filesystem::path path = home_env ? home_env : ".";
-        path /= "cosco_messages.csv";
+        path /= "nexus_messages.csv";
         const bool exists = std::filesystem::exists(path);
         csv_.open(path, std::ios::out | std::ios::app);
         if (!exists)

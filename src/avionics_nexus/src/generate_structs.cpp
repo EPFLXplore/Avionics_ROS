@@ -136,7 +136,7 @@ void generate_message_file(std::string folderPath, std::string outputFilename){
 }
 
 int main(){
-    generate_message_file("ERC_SE_CustomMessages/msg/avionics", "avionics_costco/include/packet_definition.hpp");
+    generate_message_file("ERC_SE_CustomMessages/msg/avionics", "avionics_nexus/include/packet_definition.hpp");
     return 0;
 }
 

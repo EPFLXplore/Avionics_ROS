@@ -1,44 +1,42 @@
 /**
- * @file CostcoPublisher.h
+ * @file NexusPublisher.h
  * @author Eliot Abramo, Matas Jones
  *
- * @brief CostcoPublisher is the cost effective communication module between ROS
+ * @brief NexusPublisher is the cost effective communication module between ROS
  * and the sensors It recieves data from the sensors via serial and sends this
  * data via ROS on ethernet
  *
  * @date 2025-03-18
  */
 
-#ifndef COSTCOPUBLISHER_H
-#define COSTCOPUBLISHER_H
+#ifndef NEXUSPUBLISHER_H
+#define NEXUSPUBLISHER_H
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
 #include <atomic>
-#include "Cosco.hpp"
+#include "Nexus.hpp"
 
 // Include the custom messages
-#include "custom_msg/msg/servo_response.hpp"
 #include "custom_msg/msg/dust_data.hpp"
 #include "custom_msg/msg/mass_packet.hpp"
 #include "custom_msg/msg/heartbeat.hpp"
 
-// Create the CostcoPublisher class, it is used to setup the topics and the
+// Create the NexusPublisher class, it is used to setup the topics and the
 // handles
-class CostcoPublisher : public rclcpp::Node {
+class NexusPublisher : public rclcpp::Node {
 public:
   /**
    * @brief Read the data coming from the serial and call the appropriate handle
    * depending on the serial message id
    *
    */
-  CostcoPublisher();
-  ~CostcoPublisher();
+  NexusPublisher();
+  ~NexusPublisher();
 
 private:
   // Create a shared pointer which will be used to reference the publisher in
   // the cpp
-  rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_;
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
   rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_packet_;
   rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_;
@@ -54,4 +52,4 @@ private:
   void dust_sensor_handle(int *data);
 };
 
-#endif /* COSTCOPUBLISHER_H */
+#endif /* NEXUSPUBLISHER_H */

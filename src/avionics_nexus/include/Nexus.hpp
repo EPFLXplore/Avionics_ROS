@@ -1,12 +1,12 @@
 /**
- * @file Cosco.hpp
+ * @file Nexus.hpp
  * @author Eliot Abramo
  * @brief 
  * @date 2025-07-03
  */
 
-#ifndef COSCO_HPP
-#define COSCO_HPP
+#ifndef NEXUS_HPP
+#define NEXUS_HPP
 
 #include <vector>
 #include "packet_definition.hpp"
@@ -16,19 +16,17 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <custom_msg/msg/heartbeat.hpp>
-#include <custom_msg/msg/servo_response.hpp>
 #include <custom_msg/msg/dust_data.hpp>
 #include <custom_msg/msg/mass_packet.hpp>
 
-extern rclcpp::Publisher<custom_msg::msg::ServoResponse>::SharedPtr servo_response_pub;
 extern rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_pub;
 extern rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_pub;
 extern rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_pub;
 
-class Cosco {
+class Nexus {
 public:
-    Cosco(const std::string &port, int baud=115200);
-    ~Cosco(){};
+    Nexus(const std::string &port, int baud=115200);
+    ~Nexus(){};
 
     // Send to ESP32
     void sendMassRequestHD(const MassRequestHD* data);
@@ -52,10 +50,8 @@ private:
     // Handle ROS
     void mass_packet_handle(MassPacket* mp);
     void dust_handle(DustData* d);
-    void servo_response_handle(ServoResponse* data);
-    void servo_request_handle(ServoRequest* data);
     void heartbeat_handle(Heartbeat* data);    
     void send_ROS(const typename SerialProtocol<128>::Frame &f);
 };
 
-#endif /* COSCO_HPP */
+#endif /* NEXUS_HPP */

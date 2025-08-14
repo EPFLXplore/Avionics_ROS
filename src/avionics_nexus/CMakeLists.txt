@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(avionics_costco)
+project(avionics_nexus)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -51,21 +51,21 @@ link_directories(
 )
 
 # Create the executable
-add_executable(avionics_costco
-  src/CostcoPublisher.cpp
-  src/CostcoMain.cpp
-  src/CostcoSubscriber.cpp
-  src/Cosco.cpp
+add_executable(avionics_nexus
+  src/NexusPublisher.cpp
+  src/NexusMain.cpp
+  src/NexusSubscriber.cpp
+  src/Nexus.cpp
   src/SerialDriver.cpp
 )
 
-target_link_libraries(avionics_costco
+target_link_libraries(avionics_nexus
   ${SERIALPORT_LIBRARIES}
 )
 
 
 ament_target_dependencies(
-  avionics_costco
+  avionics_nexus
   rclcpp
   custom_msg
 )
@@ -77,7 +77,7 @@ install(
 
 # Install the target
 install(TARGETS
-  avionics_costco
+  avionics_nexus
   DESTINATION lib/${PROJECT_NAME}
 )
 

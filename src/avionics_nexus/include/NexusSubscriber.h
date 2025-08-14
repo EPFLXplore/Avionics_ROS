@@ -1,11 +1,11 @@
 /**
- * @file CostcoSubscriber.h
+ * @file NexusSubscriber.h
  * @author Eliot Abramo, Matas Jones
  *
  */
 
-#ifndef COSTCO_SUBSCRIBER_H
-#define COSTCO_SUBSCRIBER_H
+#ifndef NEXUS_SUBSCRIBER_H
+#define NEXUS_SUBSCRIBER_H
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
@@ -16,17 +16,17 @@
 #include "custom_msg/msg/mass_request_hd.hpp"
 #include "custom_msg/msg/mass_request_drill.hpp"
 
-// Create the CostcoPublisher class, it is used to setup the topics
+// Create the NexusPublisher class, it is used to setup the topics
 // (subscriptions and publishers)
-class CostcoSubscriber : public rclcpp::Node {
+class NexusSubscriber : public rclcpp::Node {
 public:
   /**
    * @brief Read the data coming from the serial and call the appropriate handle
    * depending on the serial message id
    *
    */
-  CostcoSubscriber();
-  ~CostcoSubscriber();
+  NexusSubscriber();
+  ~NexusSubscriber();
 
 private:
   /**

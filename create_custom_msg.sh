@@ -3,7 +3,7 @@
 # @author Eliot Abramo
 
 # Set the source file path.
-SOURCE="src/avionics_costco/src/generate_structs.cpp"
+SOURCE="src/avionics_nexus/src/generate_structs.cpp"
 
 # Set the output executable name.
 EXE="generate_structs"
@@ -19,7 +19,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # Define input folder and output file for the executable.
-INPUT_FOLDER="msg/avionics"
+INPUT_FOLDER="src/ERC_SE_CustomMessages/msg/avionics/"
 OUTPUT_FILE="all_structs.generated.hpp"
 
 # Execute the compiled program.

@@ -1,13 +1,13 @@
 /**
- * @file CostcoMain.cpp
+ * @file NexusMain.cpp
  * @author Matas Jones
  * @brief ROS2 main file for avionics node
  * @date 2025-07-03
  * 
  */
 
-#include "CostcoPublisher.h"
-#include "CostcoSubscriber.h"
+#include "NexusPublisher.h"
+#include "NexusSubscriber.h"
 #include "rclcpp/rclcpp.hpp"
 
 /**
@@ -18,8 +18,8 @@
 int main(int argc, char *argv[]) {
   rclcpp::init(argc, argv);
 
-  auto subscriber_node = std::make_shared<CostcoSubscriber>();
-  auto publisher_node = std::make_shared<CostcoPublisher>();
+  auto subscriber_node = std::make_shared<NexusSubscriber>();
+  auto publisher_node = std::make_shared<NexusPublisher>();
 
   // Create a MultiThreadedExecutor (it will use multiple threads)
   rclcpp::executors::MultiThreadedExecutor executor;
@@ -37,8 +37,3 @@ int main(int argc, char *argv[]) {
   rclcpp::shutdown();
   return 0;
 }
-
-/**
- * ros2 topic pub /EL/dust_sensor custom_msg/msg/DustSensor "{id: 0, angle: 60.0, is_zero: 0}" --once
- *
- */

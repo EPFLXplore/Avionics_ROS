@@ -29,13 +29,13 @@ def declare_launch_argument(name: str, default_value: str, choices: List[str] = 
 
 def generate_launch_description():
     
-    ns = 'avionics_costco'
-    package_name = 'avionics_costco'
-    executable_name = 'avionics_costco'
+    ns = 'avionics_nexus'
+    package_name = 'avionics_nexus'
+    executable_name = 'avionics_nexus'
     
     logger_arg, logger_declaration = declare_launch_argument("log_level", default_value="info", description="Logger level")
     
-    Costco_node_avionics = Node(
+    Nexus_node_avionics = Node(
         package=package_name,
         executable=executable_name,
         namespace=ns,
@@ -59,7 +59,7 @@ def generate_launch_description():
     # Declare all the steps of the launch file process
     return LaunchDescription([
         logger_declaration,
-        Costco_node_avionics,
+        Nexus_node_avionics,
         python_launch
         ]
     )

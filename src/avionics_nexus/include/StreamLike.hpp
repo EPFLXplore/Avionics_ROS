@@ -12,6 +12,11 @@
 #include <cstdint>
 #include <iostream>
 
+/**
+ * Custom varient to replace Stream from arduino.hpp.
+ * Look at comment in SerialProtocol.hpp.
+ */
+
 class StreamLike {
 public:
     virtual ~StreamLike() = default;
