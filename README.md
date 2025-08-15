@@ -1,7 +1,7 @@
 # Line by line ROS2 commands needed to Launch node, build, etc.
 
 1. source src/docker_humble_jetson/attach.sh \
-    a) If you are doing a clean build on a new docker you need to do this first otherwise the custom msg won't build. If you see an error message, it's normal and you can ignore it. 
+    a) If you are doing a clean build on a new docker you need to do this first otherwise the custom msg won't build. If you see an error message, it's normal and you can ignore it. \
     b) for clean build do: rm -rf build/ install/ log/ \
     c) NEVER build in the src/ folder. The docker automatically goes into src/ so don't forget to do a cd .. to go back one. 
 
@@ -9,7 +9,7 @@
     a) build custom msg first 
 
 4. colcon build \
-    a) build the project \
+    a) build the project 
 
 5. source src/docker_humble_jetson/attach.sh \
     a) Source again for ROS. Not neceassrily needed but sometimes it is and just good practice to avoid debugging for no reason 
@@ -22,7 +22,11 @@
     a) If you want multiple terminals, allows you to attach them to the same docker. 
 
 8. ros2 topic pub /EL/servo_req custom_msg/msg/ServoRequest "{id: 1, increment: 50.0, zero_in: false}" \
-    a) simulate publisher message from CS to see if your system works 
+    a) simulate publisher message from CS to see if your system works
+    b) can add a --once and a bunch of other things if you want, just google them. 
 
 9. ros2 topic echo /EL/mass_topic \
-    a_ allows you to see what the message received by the RP from the avionics 
+    a) allows you to see what the message received by the RP from the avionics 
+
+10. ros2 topic list
+    a) show all ros2 topics
