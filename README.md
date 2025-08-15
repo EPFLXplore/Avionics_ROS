@@ -28,5 +28,5 @@
 9. ros2 topic echo /EL/mass_topic \
     a) allows you to see what the message received by the RP from the avionics 
 
-10. ros2 topic list
+10. ros2 topic list \
     a) show all ros2 topics
