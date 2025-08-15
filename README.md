@@ -2,14 +2,14 @@
 
 1. source src/docker_humble_jetson/attach.sh \
     a) If you are doing a clean build on a new docker you need to do this first otherwise the custom msg won't build. If you see an error message, it's normal and you can ignore it. 
+    b) for clean build do: rm -rf build/ install/ log/ \
+    c) NEVER build in the src/ folder. The docker automatically goes into src/ so don't forget to do a cd .. to go back one. 
 
 3. colcon build --packages-select custom_msg \
     a) build custom msg first 
 
 4. colcon build \
     a) build the project \
-    b) for clean build do: rm -rf build/ install/ log/ \
-    c) NEVER build in the src/ folder. The docker automatically goes into src/ so don't forget to do a cd .. to go back one. 
 
 5. source src/docker_humble_jetson/attach.sh \
     a) Source again for ROS. Not neceassrily needed but sometimes it is and just good practice to avoid debugging for no reason 
