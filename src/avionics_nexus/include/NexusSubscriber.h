@@ -1,11 +1,11 @@
 /**
- * @file CostcoSubscriber.h
+ * @file NexusSubscriber.h
  * @author Eliot Abramo, Matas Jones
  *
  */
 
-#ifndef COSTCO_SUBSCRIBER_H
-#define COSTCO_SUBSCRIBER_H
+#ifndef NEXUS_SUBSCRIBER_H
+#define NEXUS_SUBSCRIBER_H
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
@@ -16,24 +16,22 @@
 #include "custom_msg/msg/mass_request_hd.hpp"
 #include "custom_msg/msg/mass_request_drill.hpp"
 
-// Create the CostcoPublisher class, it is used to setup the topics
-// (subscriptions and publishers)
-class CostcoSubscriber : public rclcpp::Node {
+// Create the NexusPublisher class, it is used to setup the topics (subscriptions and publishers)
+class NexusSubscriber : public rclcpp::Node {
 public:
   /**
    * @brief Read the data coming from the serial and call the appropriate handle
    * depending on the serial message id
    *
    */
-  CostcoSubscriber();
-  ~CostcoSubscriber();
+  NexusSubscriber();
+  ~NexusSubscriber();
 
 private:
   /**
    * @brief Create a shared pointer which will be used to reference the publisher in the cpp
    * 
    */
-  // rclcpp::Subscription<custom_msg::msg::LEDMessage>::SharedPtr led_message_;
   rclcpp::Subscription<custom_msg::msg::ServoRequest>::SharedPtr servo_request_;
   rclcpp::Subscription<custom_msg::msg::MassRequestHD>::SharedPtr mass_request_hd_;
   rclcpp::Subscription<custom_msg::msg::MassRequestDrill>::SharedPtr mass_request_drill_;

@@ -14,6 +14,28 @@ struct LEDMessage {
     uint8_t state;
 };
 
+struct ServoRequest {
+    uint8_t id;
+    int32_t increment;
+    bool zero_in;
+};
+
+struct MassRequestHD {
+    bool tare;
+    float scale;
+};
+
+struct BMS {
+    std::string status;
+    float v_bat;
+    float current;
+};
+
+struct MassRequestDrill {
+    bool tare;
+    float scale;
+};
+
 struct DustData {
     uint16_t pm1_0_std;
     uint16_t pm2_5_std;
@@ -29,9 +51,8 @@ struct DustData {
     uint16_t num_particles_10;
 };
 
-struct MassRequestDrill {
-    bool tare;
-    float scale;
+struct Heartbeat {
+    uint8_t dummy;
 };
 
 struct FourInOne {
@@ -42,51 +63,9 @@ struct FourInOne {
     float ph;
 };
 
-struct DustReset {
-    bool reset;
-};
-
-struct ServoResponse {
-    uint16_t id;
-    int32_t angle;
-    bool success;
-};
-
-struct NPK {
-    uint16_t id;
-    uint16_t nitrogen;
-    uint16_t phosphorus;
-    uint16_t potassium;
-};
-
-struct Heartbeat {
-    uint8_t dummy;
-};
-
-struct MassRequestHD {
-    bool tare;
-    float scale;
-};
-
-struct BMS {
-    std::string status;
-    float v_bat;
-    float current;
-};
-
 struct MassPacket {
     uint8_t id;
     float mass;
-};
-
-struct ServoRequest {
-    uint8_t id;
-    int32_t increment;
-    bool zero_in;
-};
-
-struct LEDResponse {
-    bool success;
 };
 
 #endif /* PACKET_DEFINITION_H */

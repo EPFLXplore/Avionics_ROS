@@ -1,44 +1,42 @@
 import datetime
-import numpy as np
 import rclpy
 from rclpy.node import Node
-from pymodbus.client import ModbusSerialClient
 import minimalmodbus
 import serial
 import time
 import os
+import struct 
 
-from rclpy.executors import MultiThreadedExecutor
-from custom_msg.msg import BMS, FourInOne, LEDMessage
+from custom_msg.msg import BMS, FourInOne, LEDMessage, ServoRequest
 
-usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI !
+usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI 
 usb_port_4in1 = '/dev/tty4in1' # BOTTOM LEFT
 usb_port_leds = '/dev/ttyESP32_LED' # TOP LEFT
 
 # 4in1 register definitions
 HUM_REGISTER = 0
 TEMP_REGISTER = 1
-EC_REGISTER = 2
-PH_REGISTER = 3
+EC_REGISTER   = 2
+PH_REGISTER   = 3
+
+ServoCam_ID = 1
+ServoDrill_ID = 2
+
 
 class PythonPublisher(Node):
     def __init__(self):
         super().__init__('python_publisher')
         self.publisher_bms = self.create_publisher(BMS, '/EL/bms_topic', 10)
-        self.publisher_4in1 = self.create_publisher(FourInOne, '/EL/FourInOne_topic', 10)
+        self.publisher_4in1 = self.create_publisher(FourInOne, '/EL/four_in_one', 10)
 
-        timer_period = 1  # seconds
-        self.timer = self.create_timer(timer_period, self.timer_callback)
+        self.timer = self.create_timer(1, self.timer_callback) # 1 Hz
 
-        # BMS Setup
-        self.usb_port_bms = usb_port_bms
-        self.client_bms = None
+        # TinyBMS state
+        self.bms_serial = None
         self.bms_available = False
         self.bms_reconnect_counter = 0
-        self.bms_reconnect_interval = 2 
+        self.bms_reconnect_interval = 2
         self.try_connect_bms()
-        self.read_BMS()
-        self.try_reconnect_bms()
 
         # 4in1 Setup
         self.usb_port_4in1 = usb_port_4in1
@@ -47,69 +45,133 @@ class PythonPublisher(Node):
         self.FourinOne_reconnect_counter = 0
         self.FourinOne_reconnect_interval = 2 
         self.try_connect_4in1()
-        self.read_4in1()
-        self.try_reconnect_4in1()
-    
-    def try_connect_bms(self):
-        try:
-            self.client_bms = ModbusSerialClient(port=self.usb_port_bms, timeout=2, baudrate=115200)
-            if self.client_bms.connect():
-                self.get_logger().info("Connected to BMS device.")
-                self.bms_available = True
-            else:
-                self.get_logger().warn("Failed to connect to BMS device.")
-                self.bms_available = False
-        except Exception as e:
-            self.get_logger().error(f"Exception during BMS connect: {e}")
-            self.client_bms = None
-            self.bms_available = False
 
-    def try_reconnect_bms(self):
-        self.get_logger().info("Attempting to reconnect to Modbus device...")
-        self.try_connect_bms()
+        # Set servo to init positions for NAV. Two different init positions:
+        # 1) when we turn on the rover and the esp32 is launched, sets a position
+        # 2) when you launch the avionics docker and code, 2nd position defined below
+        # why? 
+        # allows us to see clearly if the avionics node is launched.
+        publisher_servo = self.create_publisher(ServoRequest, '/EL/servo_req', 10)
+        msg_servo_drill = ServoRequest()
+        msg_servo_cam = ServoRequest()
 
-    def read_registers(self, address, count, slave_id):
-        if not self.client_bms:
-            raise Exception("BMS Client is not initialized.")
-        response = self.client_bms.read_holding_registers(address=address, count=count, slave=slave_id)
-        if response.isError():
-            raise Exception(f"BMS Error reading registers at address {address}: {response}")
-        return response.registers
+        msg_servo_drill.id = ServoDrill_ID
+        msg_servo_cam.id = ServoCam_ID
+
+        msg_servo_drill.increment = -1000
+        msg_servo_cam.increment = 1000
+
+        msg_servo_drill.zero_in = False
+        msg_servo_cam.zero_in = False
+
+        publisher_servo.publish(msg_servo_drill)
+        publisher_servo.publish(msg_servo_cam)
+
+    # ---------------------- TinyBMS helpers ---------------------- #
+    # quick brief: I had so many issues communicating with the BMS with the 
+    # minimalmodbus library that I just went with a custom driver.
+    # very similar to the serial used for the avionics and just makes it
+    # much more clean.
+    @staticmethod
+    def crc16(data: bytes) -> int:
+        """CRC‑16/Modbus (poly 0x8005, init 0xFFFF, reflected)."""
+        crc = 0xFFFF
+        for b in data:
+            crc ^= b
+            for _ in range(8):
+                if crc & 0x0001:
+                    crc = (crc >> 1) ^ 0xA001
+                else:
+                    crc >>= 1
+        return crc
+
+    def _tx_frame(self, cmd: int):
+        frame = bytearray([0xAA, cmd])
+        crc = self.crc16(frame)
+        frame += bytes([crc & 0xFF, crc >> 8])
+        self.bms_serial.write(frame)
+        self.bms_serial.flush()
+
+    def send_cmd(self, cmd: int, resp_len: int) -> bytes:
+        self.bms_serial.reset_input_buffer()
+
+        attempts = 2  # first = normal, second = wake‑up if needed
+        for attempt in range(attempts):
+            self._tx_frame(cmd)
+            start = time.monotonic()
+            while time.monotonic() - start < self.bms_serial.timeout:
+                hdr = self.bms_serial.read(2)
+                if len(hdr) < 2:
+                    continue 
+                if hdr[0] != 0xAA:
+                    continue  # garbage, keep scanning
+                payload_cmd = hdr[1]
+                # Determine expected total length for this incoming packet
+                if payload_cmd in (0x14, 0x15):  
+                    total_len = 8
+                elif payload_cmd == 0x18:       
+                    total_len = 6
+                else:
+                    continue
+                rest = self.bms_serial.read(total_len - 2)
+                if len(rest) != total_len - 2:
+                    break 
+                packet = hdr + rest
+                # CRC check
+                if self.crc16(packet[:-2]) != (packet[-2] | (packet[-1] << 8)):
+                    continue  # bad CRC, ignore
+                if payload_cmd == cmd:
+                    return packet  # success
+        raise TimeoutError(f"TinyBMS: no valid response to 0x{cmd:02X}")
 
     def read_BMS(self):
+        if not self.bms_serial:
+            raise RuntimeError("BMS serial not open")
+
+        # Voltage (cmd 0x14)
+        v_pkt = self.send_cmd(0x14, 8)
+        v_bat = struct.unpack('<f', v_pkt[2:6])[0]
+
+        # Current (cmd 0x15)
+        i_pkt = self.send_cmd(0x15, 8)
+        pack_current = struct.unpack('<f', i_pkt[2:6])[0]
+
+        # Online status (cmd 0x18)
+        s_pkt = self.send_cmd(0x18, 6)
+        status_code = s_pkt[2] | (s_pkt[3] << 8)
+
+        status_map = {
+            0x91: "Charging",
+            0x92: "Fully‑Charged",
+            0x93: "Discharging",
+            0x96: "Regeneration",
+            0x97: "Idle",
+            0x9B: "Fault"
+        }
+        status = status_map.get(status_code, f"0x{status_code:04X}")
+        if(status == "Idle"):
+            current = 0.0
+
+        return (v_bat, status, pack_current)
+
+    def try_connect_bms(self):
         try:
-            # registers = self.read_registers(51, 16, slave_id=0xAA)
-            # balance = '{:016b}'.format(registers[0]) if registers else '0'*16
- 
-            registers = self.read_registers(38, 2, slave_id=0xAA)
-            current = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0]) if registers else 0.0
-
-            registers = self.read_registers(36, 2, slave_id=0xAA)
-            v_bat = float(np.array(registers, dtype=np.uint16).view(dtype=np.float32)[0]) if registers else 0.0
-
-            registers = self.read_registers(50, 1, slave_id=0xAA)
-            match registers[0]:
-                case 0x91:
-                    status= "Charging"
-                case 0x92:
-                    status="Fully-Charged"
-                case 0x93:
-                    status = "Discharging"
-                case 0x96:
-                    status ="Regeneration"
-                case 0x97:
-                    status ="Idle"
-                case 0x9B:
-                    status ="Fault"
-                case _ :
-                    status = "comm err"
-            return (v_bat,status,current)
-
+            self.bms_serial = serial.Serial(
+                port=usb_port_bms,
+                baudrate=115200,
+                bytesize=8,
+                parity=serial.PARITY_NONE,
+                stopbits=1,
+                timeout=1
+            )
+            self.get_logger().info("Connected to TinyBMS serial port.")
+            self.bms_available = True
         except Exception as e:
-            self.get_logger().warn(f"BMS Error during update: {e}")
+            self.get_logger().warn(f"Failed to open BMS serial port: {e}")
+            self.bms_serial = None
             self.bms_available = False
-            return (0.0, "disconnected", 0.0)
 
+    # ---------------------- 4in1 helpers ---------------------- #
     def try_connect_4in1(self):
         try:
             self.instrument_4in1 = minimalmodbus.Instrument(self.usb_port_4in1, 1, mode=minimalmodbus.MODE_RTU)
@@ -143,15 +205,16 @@ class PythonPublisher(Node):
             return None
 
     def try_reconnect_4in1(self):
-        self.get_logger().info("Attempting to reconnect to Modbus device...")
+        self.get_logger().info("Attempting to reconnect to 4in1 device...")
         self.try_connect_4in1()
 
+    # ---------------------- Main Timer Callback ---------------------- #
     def timer_callback(self):
         if not self.bms_available:
             self.bms_reconnect_counter += 1
             if self.bms_reconnect_counter >= self.bms_reconnect_interval:
                 self.bms_reconnect_counter = 0
-                self.try_reconnect_bms()
+                self.try_connect_bms()
 
         if not self.FourinOne_available:
             self.FourinOne_reconnect_counter += 1
@@ -159,9 +222,11 @@ class PythonPublisher(Node):
                 self.FourinOne_reconnect_counter = 0
                 self.try_reconnect_4in1()
 
-        if(self.bms_available):
-            v_bat,status,current = self.read_BMS()
-        else:
+        # Read & publish BMS
+        try:
+            v_bat, status, current = self.read_BMS() if self.bms_available else (0.0, "disconnected", 0.0)
+        except Exception as e:
+            self.get_logger().warn(f"BMS read error: {e}")
             v_bat, status, current = 0.0, "disconnected", 0.0
 
         msg_bms = BMS()
@@ -184,21 +249,28 @@ class PythonPublisher(Node):
         msg_4in1.ph = round(float(ph),1)
         self.publisher_4in1.publish(msg_4in1)
 
-
-# "{state = 0, system = 0}"
 class PythonSubscriber(Node):
     def __init__(self):
         super().__init__('python_subscriber')
         self.subscription = self.create_subscription(LEDMessage,'/EL/LedCommands',
                                                      self.leds_callback, 10)
-        self.subscription  # prevent unused variable warning
+        self.subscription 
         self.port = usb_port_leds
         self.serial = None
         self.open_serial_port()
         self.get_logger().info("LED Subscriber node initialized and subscribing to /EL/LedCommands")
 
-   
+        publisher_led = self.create_publisher(LEDMessage, '/EL/LedCommands', 10)
+        msg_led = LEDMessage()
+        msg_led.system = 0
+        msg_led.state = 6
+        publisher_led.publish(msg_led)
 
+        msg_led = LEDMessage()
+        msg_led.system = 3
+        msg_led.state = 1
+        publisher_led.publish(msg_led)
+   
     def open_serial_port(self):
         try:
             self.serial = serial.Serial(self.port, baudrate=115200, timeout=1)
@@ -208,32 +280,45 @@ class PythonSubscriber(Node):
             self.serial = None
 
     def leds_callback(self, msg):
-        self.get_logger().info('Received LED message:')
-        self.get_logger().info('System "%s"' % msg.system)
-        self.get_logger().info('State "%s"' % msg.state)
+        # self.get_logger().info('Received LED message:')
+        # self.get_logger().info('System "%s"' % msg.system)
+        # self.get_logger().info('State "%s"' % msg.state)
 
         if self.serial != None:
             try:
+                mode = 6
                 # Prepare the LED message
                 if msg.system not in [0, 1, 2, 3]:
                     self.get_logger().error("Invalid system value. Must be 0, 1, 2, or 3.")
                     return
-                if msg.state not in [0, 1, 2]:
+                if msg.state not in [0, 1, 2, 3, 4, 5, 6]:
                     self.get_logger().error("Invalid state value. Must be 0, 1, or 2.")
                     return
                 if msg.state == 0:
-                    mode = 5  # Off
-                    self.get_logger().info("Turning off LEDs.")
+                    mode = 0  # Off
+                    # self.get_logger().info("Turning off LEDs.")
                 elif msg.state == 1:
-                    mode = 0  # On
-                    self.get_logger().info("Turning on LEDs.")
+                    mode = 1  # On
+                    # self.get_logger().info("Turning on LEDs.")
                 elif msg.state == 2:
-                    mode = 3  # Blinking
-                    self.get_logger().info("Blinking LEDs.")
+                    mode = 2  # Blinking
+                    # self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 3:
+                    mode = 3  # Fault
+                    # self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 4:
+                    mode = 4  # Emergency Motors
+                    # self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 5:
+                    mode = 5  # Emergency Shutdown
+                    # self.get_logger().info("Blinking LEDs.")
+                elif msg.state == 6:
+                    mode = 6  # All off
+                    # self.get_logger().info("Blinking LEDs.")
 
-                led_message = f"0 100 {msg.system} {mode}\n"
+                led_message = f"0 1 {msg.system} {mode}\n"
                 self.serial.write(led_message.encode('ascii'))
-                self.get_logger().info("LED message sent successfully.")
+                # self.get_logger().info("LED message sent successfully.")
                 
             except serial.SerialException as e:
                 self.get_logger().error(f"Error writing to serial port: {e}")
@@ -241,12 +326,15 @@ class PythonSubscriber(Node):
             self.get_logger().error("Serial port is not open. Cannot send LED message.")
             self.open_serial_port()
 
-
-
 def main(args=None):
     rclpy.init(args=args)
 
+    executor = rclpy.executors.MultiThreadedExecutor()
     python_pub = PythonPublisher() 
-    rclpy.spin(python_pub)
-    python_pub.destroy_node()
+    python_sub = PythonSubscriber()
+
+    executor.add_node(python_pub)
+    executor.add_node(python_sub)
+
+    executor.spin()
     rclpy.shutdown()

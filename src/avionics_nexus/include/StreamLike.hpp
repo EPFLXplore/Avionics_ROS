@@ -12,6 +12,14 @@
 #include <cstdint>
 #include <iostream>
 
+/**
+ * Custom varient to replace Stream from arduino.hpp.
+ *
+ * Stream Class comes from Arduino.hpp which is a pain to cross compile. And even it we did do it,
+ * you have no control and it just becomes a headache to maintain. So I just did a custom variant that 
+ * we can control. Works exactly the same way. Combination of StreamLike and SerialProtocol, read both to understand.
+ */
+
 class StreamLike {
 public:
     virtual ~StreamLike() = default;

@@ -29,13 +29,14 @@ def declare_launch_argument(name: str, default_value: str, choices: List[str] = 
 
 def generate_launch_description():
     
-    ns = 'avionics_costco'
-    package_name = 'avionics_costco'
-    executable_name = 'avionics_costco'
+    ns = 'avionics_nexus'
+    package_name = 'avionics_nexus'
+    executable_name = 'avionics_nexus'
     
     logger_arg, logger_declaration = declare_launch_argument("log_level", default_value="info", description="Logger level")
     
-    Costco_node_avionics = Node(
+    # launch avionics node
+    Nexus_node_avionics = Node(
         package=package_name,
         executable=executable_name,
         namespace=ns,
@@ -44,10 +45,11 @@ def generate_launch_description():
             '--log-level', logger_arg,
             ],
         parameters=[
-            {"port_name": '/dev/ttyESP32_Avionics'},
+            {"port_name": '/dev/ttyESP32_Avionics'}, # passes serial port name as argument. If you change the dev rules, change this.
         ]
     )
 
+    # launch python node
     python_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             [os.path.join(
@@ -59,7 +61,7 @@ def generate_launch_description():
     # Declare all the steps of the launch file process
     return LaunchDescription([
         logger_declaration,
-        Costco_node_avionics
-        # python_launch
+        Nexus_node_avionics,
+        python_launch
         ]
     )
