@@ -5,8 +5,8 @@
 
 /**
  * CHANGE THIS PLEASE
- * This address list allows both the ROS code and communicaiton protocol to understand what
- * I am trying to send them. It's essentially a big lookup table.
+ * This address list allows both the ROS code and communication protocol to understand what
+ * we are trying to send them. It's essentially a big lookup table.
  * 
  * The code is okay, what's bad about this is that you have to manually ensure that ids are synchronized
  * between both codes. i.e. that the packet_id.hpp file is always the same. 
@@ -46,7 +46,7 @@
 
 // FourInOne and NPK packets
 #define FourInOne_ID 13
-#define NPK_ID 14
+#define NPK_ID 14 // Not used
 
 // Dust packets
 #define DustData_ID 15

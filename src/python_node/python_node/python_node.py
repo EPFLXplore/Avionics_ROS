@@ -9,7 +9,7 @@ import struct
 
 from custom_msg.msg import BMS, FourInOne, LEDMessage, ServoRequest
 
-usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI !
+usb_port_bms = '/dev/ttyBMS' # TOP RIGHT OF PI 
 usb_port_4in1 = '/dev/tty4in1' # BOTTOM LEFT
 usb_port_leds = '/dev/ttyESP32_LED' # TOP LEFT
 
@@ -19,8 +19,8 @@ TEMP_REGISTER = 1
 EC_REGISTER   = 2
 PH_REGISTER   = 3
 
-ServoDrill_ID = 1
-ServoCam_ID = 3
+ServoCam_ID = 1
+ServoDrill_ID = 2
 
 
 class PythonPublisher(Node):
@@ -46,6 +46,11 @@ class PythonPublisher(Node):
         self.FourinOne_reconnect_interval = 2 
         self.try_connect_4in1()
 
+        # Set servo to init positions for NAV. Two different init positions:
+        # 1) when we turn on the rover and the esp32 is launched, sets a position
+        # 2) when you launch the avionics docker and code, 2nd position defined below
+        # why? 
+        # allows us to see clearly if the avionics node is launched.
         publisher_servo = self.create_publisher(ServoRequest, '/EL/servo_req', 10)
         msg_servo_drill = ServoRequest()
         msg_servo_cam = ServoRequest()
@@ -62,8 +67,11 @@ class PythonPublisher(Node):
         publisher_servo.publish(msg_servo_drill)
         publisher_servo.publish(msg_servo_cam)
 
-
     # ---------------------- TinyBMS helpers ---------------------- #
+    # quick brief: I had so many issues communicating with the BMS with the 
+    # minimalmodbus library that I just went with a custom driver.
+    # very similar to the serial used for the avionics and just makes it
+    # much more clean.
     @staticmethod
     def crc16(data: bytes) -> int:
         """CRC‑16/Modbus (poly 0x8005, init 0xFFFF, reflected)."""

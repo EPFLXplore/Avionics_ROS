@@ -25,16 +25,22 @@ NexusSubscriber::NexusSubscriber() : Node("nexus_subscriber") {
   nexus_sub = std::make_unique<Nexus>(port_name, 115200);
 
   // Instantiate the subscribers
-  // !!! topic name != message name (for LEDMessage, why? ask Gio)
-  // These subscribers are binded with a handle such that when a message is
-  // received, the handle is called
+  // !!! topic name != message name
+  // These subscribers are binded with a handle such that when a message is received, the handle is called
 
+  // create servo subscriber
   this->servo_request_ =
       this->create_subscription<custom_msg::msg::ServoRequest>(
           ("/EL/servo_req"), 10,
           std::bind(&NexusSubscriber::ServoRequestHandler, this,
                     std::placeholders::_1));
   
+  /* Set servo to init positions for NAV. Two different init positions:
+  * 1) when we turn on the rover and the esp32 is launched, sets a position
+  * 2) when you launch the avionics docker and code, 2nd position defined below
+  * why? 
+  * allows us to see clearly if the avionics node is launched.
+  */
   ServoRequest servoInit;
   servoInit.id = 2;
   servoInit.increment = -1000;
@@ -42,6 +48,7 @@ NexusSubscriber::NexusSubscriber() : Node("nexus_subscriber") {
   nexus_sub->sendServo(&servoInit, servoInit.id);
   // RCLCPP_INFO(this->get_logger(), "Servo sent to ESP32");
 
+  // create mass subscriber
   this->mass_request_hd_ =
     this->create_subscription<custom_msg::msg::MassRequestHD>(
         ("/EL/mass_req_hd"), 10,
@@ -54,17 +61,19 @@ NexusSubscriber::NexusSubscriber() : Node("nexus_subscriber") {
       std::bind(&NexusSubscriber::MassRequestDrillHandler, this,
                 std::placeholders::_1));
 
-    MassRequestHD massHDtare;
-    massHDtare.tare = true;
-    massHDtare.scale = 0.0;
-    nexus_sub->sendMassRequestHD(&massHDtare);
-    nexus_sub->sendMassRequestHD(&massHDtare);
+  // tare mass so already zero at launch. Will drift over time so always tare before weighing.
+  // why sent twice? has to do with HX711 timings.
+  MassRequestHD massHDtare;
+  massHDtare.tare = true;
+  massHDtare.scale = 0.0;
+  nexus_sub->sendMassRequestHD(&massHDtare);
+  nexus_sub->sendMassRequestHD(&massHDtare);
 
-    MassRequestDrill massDrilltare;
-    massDrilltare.tare = true;
-    massDrilltare.scale = 0.0;
-    nexus_sub->sendMassRequestDrill(&massDrilltare);
-    nexus_sub->sendMassRequestDrill(&massDrilltare);
+  MassRequestDrill massDrilltare;
+  massDrilltare.tare = true;
+  massDrilltare.scale = 0.0;
+  nexus_sub->sendMassRequestDrill(&massDrilltare);
+  nexus_sub->sendMassRequestDrill(&massDrilltare);
 
 }
 

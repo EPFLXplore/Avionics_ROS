@@ -1,7 +1,8 @@
 
 /**
  * @file CsvMessageLogger.hpp
- * @brief Lightweight, thread‑safe CSV logger for ROS 2 message callbacks.
+ * @author Eliot Abramo
+ * @brief CSV logger for ROS 2 message callbacks
 *
  * Each call to CSV_LOG_CAT("Dust", msg_ptr) (or "Servo"/"Mass") appends:
  *   category,timestamp,callback,data
@@ -9,6 +10,11 @@
  *
  * If you omit the category, CSV_LOG(msg_ptr) falls back to "Unknown".
  */
+
+/**
+ * Currently not implemented due to time issues.
+ * Not tested either.
+*/
 
 #ifndef CSV_HPP
 #define CSV_HPP

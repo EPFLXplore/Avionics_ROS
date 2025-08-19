@@ -1,6 +1,6 @@
 /**
  * @file NexusMain.cpp
- * @author Matas Jones
+ * @author Eliot Abramo, Matas Jones
  * @brief ROS2 main file for avionics node
  * @date 2025-07-03
  * 

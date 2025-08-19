@@ -27,8 +27,11 @@ NexusPublisher::NexusPublisher() : Node("nexus_publisher") {
     // look at launch.py
     this->declare_parameter<std::string>("port_name", "");
     std::string port_name = this->get_parameter("port_name").as_string();
+
     RCLCPP_INFO(this->get_logger(), "port_name: %s", port_name.c_str());
-    nexus_ = std::make_unique<Nexus>(port_name, 115200);
+
+    // create nexus instance
+    nexus_ = std::make_unique<Nexus>(port_name, 115200); 
 
     // Instantiate the publishers
     this->dust_sensor_ = this->create_publisher<custom_msg::msg::DustData>("/EL/dust_sensor", 10);

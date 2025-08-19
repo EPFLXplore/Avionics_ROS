@@ -2,10 +2,9 @@ import os
 from launch import LaunchDescription
 from launch_ros.actions import Node
 
-# This is the BMS launchfile
+# This is the python node launchfile
 # It is what is called after ros2 launch
 
-# This is the general form for a launch file -> look online if needed
 def generate_launch_description():
     return LaunchDescription([
         Node(

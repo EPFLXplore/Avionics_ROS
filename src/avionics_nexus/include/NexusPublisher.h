@@ -14,7 +14,11 @@
 
 #include "rclcpp/rclcpp.hpp"
 #include <thread>
-#include <atomic>
+/*
+* atomic elements means that all operations on them are indivisible and guarenteed to complete
+* without being interrupted by other threads. Ensures thread safe access to shared data.
+*/ 
+#include <atomic> 
 #include "Nexus.hpp"
 
 // Include the custom messages
@@ -22,8 +26,7 @@
 #include "custom_msg/msg/mass_packet.hpp"
 #include "custom_msg/msg/heartbeat.hpp"
 
-// Create the NexusPublisher class, it is used to setup the topics and the
-// handles
+// Create the NexusPublisher class, it is used to setup the topics and the handles
 class NexusPublisher : public rclcpp::Node {
 public:
   /**
@@ -35,8 +38,7 @@ public:
   ~NexusPublisher();
 
 private:
-  // Create a shared pointer which will be used to reference the publisher in
-  // the cpp
+  // Create a shared pointer which will be used to reference the publisher in the cpp
   rclcpp::Publisher<custom_msg::msg::DustData>::SharedPtr dust_sensor_;
   rclcpp::Publisher<custom_msg::msg::MassPacket>::SharedPtr mass_packet_;
   rclcpp::Publisher<custom_msg::msg::Heartbeat>::SharedPtr heartbeat_;

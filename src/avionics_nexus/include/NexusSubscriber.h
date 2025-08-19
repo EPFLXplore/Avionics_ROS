@@ -16,8 +16,7 @@
 #include "custom_msg/msg/mass_request_hd.hpp"
 #include "custom_msg/msg/mass_request_drill.hpp"
 
-// Create the NexusPublisher class, it is used to setup the topics
-// (subscriptions and publishers)
+// Create the NexusPublisher class, it is used to setup the topics (subscriptions and publishers)
 class NexusSubscriber : public rclcpp::Node {
 public:
   /**
@@ -33,7 +32,6 @@ private:
    * @brief Create a shared pointer which will be used to reference the publisher in the cpp
    * 
    */
-  // rclcpp::Subscription<custom_msg::msg::LEDMessage>::SharedPtr led_message_;
   rclcpp::Subscription<custom_msg::msg::ServoRequest>::SharedPtr servo_request_;
   rclcpp::Subscription<custom_msg::msg::MassRequestHD>::SharedPtr mass_request_hd_;
   rclcpp::Subscription<custom_msg::msg::MassRequestDrill>::SharedPtr mass_request_drill_;

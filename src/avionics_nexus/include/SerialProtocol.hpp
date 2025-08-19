@@ -16,7 +16,7 @@
 #include "StreamLike.hpp"
 /**
  * Stream Class comes from Arduino.hpp which is a pain to cross compile. And even it we did do it,
- * you have no control and it just becomes a headache to maintain. So I just did a custom varient that 
+ * you have no control and it just becomes a headache to maintain. So I just did a custom variant that 
  * we can control. Works exactly the same way.
  */
 
@@ -44,7 +44,7 @@
  *      }
  */
 
-template <std::size_t MaxPayload>
+template <std::size_t MaxPayload> //allows us to set max payload however we want 
 class SerialProtocol {
   public:
     struct Frame {
@@ -86,7 +86,7 @@ class SerialProtocol {
         /* CRC (calculated over ID+payload) */
         write16(crc16(id, p, len));
 
-        /* Make sure everything actually leaves the HW FIFO. Made for some wierd debugging lol */
+        /* Make sure everything actually leaves the HW FIFO. Wihout it you get weird errors as buffer doesn't empty. */
         s_.flush();
     }
     
@@ -98,9 +98,14 @@ class SerialProtocol {
      * the serial line, which has many advantages as we are certain that the pipeline won't crash. However,
      * big drawback, it is very severe, so packets have to be perfect or they are rejected.
      *
+     * The advantage of this being very severe is that if you leave a Serial.print() somewhere in your code when
+     * you're debugging, it won't crash the pipeline. This is a failsafe but ideally don't pollute the bus with useless
+     * diagnostic prints please.
+     *
      * How it works:
      * - The function keeps track of where we are in the frame (start bytes, length, id, payload, CRC).
-     * I chose to make packets look like this (if you really want to know why, google or ask me):
+     * Packet structure was a deliberate choice, it follows standard norms and gives all useful data whilst being
+     * as compact as possible.
      * 
      *   +------------+------------+----------------+----------+----------------+---------+
      *  | 0xA5 (STX) | 0x5A       | uint16 len     | uint8 id | payload[len-1] | CRC16   |
@@ -108,7 +113,8 @@ class SerialProtocol {
      *  - len counts *id + payload* (so min len=1). CRC is X25/Modbus (poly 0xA001).
      * 
      * - Start bytes 0xA5, 0x5A were chosen because they're rare in ASCII streams. They quite literally represent the 
-     * symbol for the Yen (0xA5) and then I did 0x5A cause it's the inverse so fits well. Unless the Yen becomes a unit
+     * symbol for the Yen (0xA5) and then I did 0x5A cause it's the inverse so fits well, it is almost impossible that
+     * the bus is so exposed that it perfectly flips all bits so this is a very good security. Unless the Yen becomes a unit
      * of measurement for an actuator, we should be good. (You could have put whatever you want here btw)
      * 
      * - It then waits for the two start bytes (0xA5, 0x5A) to sync up ().
@@ -117,7 +123,7 @@ class SerialProtocol {
      * 
      * - Next, it grabs the packet ID (very important step).
      * 
-     * - If there's a payload, it reads that in, otherwise skips to CRC. (CRC <-> check if packet isn't compromise)
+     * - If there's a payload, it reads that in, otherwise skips to CRC. 
      * 
      * - Finally, it reads the CRC (2 bytes) and checks if it matches what we expect.
      * 
@@ -219,6 +225,8 @@ class SerialProtocol {
     void write8(uint8_t v) {
         s_.write(v); 
     }
+
+    // like write8 but applies masking, _write comes from SerialDriver.hpp which can only write 8 bits (1 byte) at a time 
     void write16(uint16_t v) {
         s_.write(static_cast<uint8_t>(v & 0xFF));
         s_.write(static_cast<uint8_t>((v >> 8) & 0xFF));
@@ -229,6 +237,7 @@ class SerialProtocol {
         for (uint8_t i = 0; i < 8; ++i) crc = (crc & 1) ? (crc >> 1) ^ 0xA001 : crc >> 1;
         return crc;
     }
+    
     static uint16_t crc16(uint8_t id, const uint8_t *data, uint16_t len) {
         uint16_t crc = 0xFFFF;
         crc = updateCrc(crc, id);
