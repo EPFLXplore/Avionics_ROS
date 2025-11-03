@@ -1,0 +1,7 @@
+../System/MicroROS/usb_cdc_transport.c:38:15:CDC_TransmitCplt_FS	1
+../System/MicroROS/usb_cdc_transport.c:49:15:CDC_Control_FS	3
+../System/MicroROS/usb_cdc_transport.c:76:15:CDC_Receive_FS	2
+../System/MicroROS/usb_cdc_transport.c:101:6:cubemx_transport_open	2
+../System/MicroROS/usb_cdc_transport.c:115:6:cubemx_transport_close	1
+../System/MicroROS/usb_cdc_transport.c:119:8:cubemx_transport_write	5
+../System/MicroROS/usb_cdc_transport.c:139:8:cubemx_transport_read	5

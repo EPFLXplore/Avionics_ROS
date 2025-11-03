@@ -1,0 +1,10 @@
+/home/pedro/Pedro/Xplore/VegaTestingCode/vega-microROS/System/Threads/Inc/Thread.h:23:10:Thread::~Thread()	16	static
+/home/pedro/Pedro/Xplore/VegaTestingCode/vega-microROS/System/Threads/Inc/Thread.h:23:10:virtual Thread::~Thread()	16	static
+../System/Threads/Src/TestTask.cpp:40:5:int _gettimeofday(timeval*, void*)	32	static
+../System/Threads/Src/TestTask.cpp:53:20:void uros_bind_transport_cdc()	16	static
+../System/Threads/Src/TestTask.cpp:63:1:TestTask::TestTask()	16	static
+../System/Threads/Src/TestTask.cpp:73:13:void timer_cb(rcl_timer_t*, int64_t)	32	static
+../System/Threads/Src/TestTask.cpp:86:6:virtual void TestTask::init()	56	static
+../System/Threads/Src/TestTask.cpp:120:6:virtual void TestTask::loop()	16	static
+/home/pedro/Pedro/Xplore/VegaTestingCode/vega-microROS/System/Threads/Inc/TestTask.h:13:7:TestTask::~TestTask()	16	static
+/home/pedro/Pedro/Xplore/VegaTestingCode/vega-microROS/System/Threads/Inc/TestTask.h:13:7:virtual TestTask::~TestTask()	16	static

@@ -1,0 +1,5 @@
+../Core/Src/usart.c:32:6:MX_USART2_Init	5
+../Core/Src/usart.c:75:6:MX_USART3_Init	5
+../Core/Src/usart.c:118:6:MX_USART6_Init	6
+../Core/Src/usart.c:165:6:HAL_USART_MspInit	7
+../Core/Src/usart.c:293:6:HAL_USART_MspDeInit	4

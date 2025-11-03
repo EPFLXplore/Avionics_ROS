@@ -1,0 +1,4 @@
+../System/Utils/Src/Operators.cpp:11:8:void* operator new(size_t)	16	static
+../System/Utils/Src/Operators.cpp:15:8:void* operator new [](size_t)	16	static
+../System/Utils/Src/Operators.cpp:19:6:void operator delete(void*)	16	static
+../System/Utils/Src/Operators.cpp:23:6:void operator delete [](void*)	16	static
