@@ -1,32 +1,74 @@
-# Line by line ROS2 commands needed to Launch node, build, etc.
+# Interact with the MCU with a microROS Agent
 
-1. source src/docker_humble_jetson/attach.sh \
-    a) If you are doing a clean build on a new docker you need to do this first otherwise the custom msg won't build. If you see an error message, it's normal and you can ignore it. \
-    b) for clean build do: rm -rf build/ install/ log/ \
-    c) NEVER build in the src/ folder. The docker automatically goes into src/ so don't forget to do a cd .. to go back one. 
+- [Micro-ROS documentation on Notion](https://www.notion.so/xplore-doc/Electronics-Main-Page-9bd09037225f44079b4082249d664c20?p=2a010d0104f880479e73e5e9036b130a&pm=s).
 
-3. colcon build --packages-select custom_msg \
-    a) build custom msg first 
+## Install microROS on the device thats gonna talk with the MCU
 
-4. colcon build \
-    a) build the project 
+Once you have a ROS 2 installation in the computer, follow these steps to install the micro-ROS build system:
 
-5. source src/docker_humble_jetson/attach.sh \
-    a) Source again for ROS. Not neceassrily needed but sometimes it is and just good practice to avoid debugging for no reason 
-   
-6. ros2 launch avionics_nexus launch.py \
-    a) launch avionics pipeline. Also launches the python node. \
-    b) This is a specific command for the current code. General syntax is: ros2 launch *node_name* *launch_file*  
+```cpp
+# Source the ROS 2 installation
+source /opt/ros/$ROS_DISTRO/setup.bash
 
-7. docker exec -it elec_humble_desktop bash \
-    a) If you want multiple terminals, allows you to attach them to the same docker. 
+# Create a workspace and download the micro-ROS tools
+mkdir microros_ws
+cd microros_ws
+git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
 
-8. ros2 topic pub /EL/servo_req custom_msg/msg/ServoRequest "{id: 1, increment: 50.0, zero_in: false}" \
-    a) simulate publisher message from CS to see if your system works
-    b) can add a --once and a bunch of other things if you want, just google them. 
+# Update dependencies using rosdep
+sudo apt update && rosdep update
+rosdep install --from-paths src --ignore-src -y
 
-9. ros2 topic echo /EL/mass_topic \
-    a) allows you to see what the message received by the RP from the avionics 
+# Install pip
+sudo apt-get install python3-pip
 
-10. ros2 topic list \
-    a) show all ros2 topics
+# Build micro-ROS tools and source them
+colcon build
+source install/local_setup.bash
+```
+
+## Create a microROS Agent
+
+**On the microros_ws folder you already created (point 5.)**
+
+First build tools and source if you haven’t already:
+
+```cpp
+# Build micro-ROS tools and source them
+colcon build
+source install/local_setup.bash
+```
+
+Then create the agent, build it and source.
+
+```cpp
+ros2 run micro_ros_setup create_agent_ws.sh
+ros2 run micro_ros_setup build_agent.sh
+source install/local_setup.bash
+```
+
+## Use it to read the publisher on the MCU
+
+```cpp
+ros2 run micro_ros_agent micro_ros_agent serial --dev [device]
+```
+
+Where `[device]` is the USB port you connected the connector corresponding to the USB CDC of your board. You can find it with the following command comparing the outputs with and without the connected board
+
+```cpp
+ls /dev/tty*
+```
+
+You should also see a difference when doing `lsusb`, if the command line blocks when doing that the USB enumeration failed: check your USB configuration of your STM.
+
+When running the microROS command that terminal window is now blocked, open a new one, source and you are ready to interact with the board!
+
+```cpp
+source install/local_setup.bash
+
+#List topics
+ros2 topic list
+
+#Read "Hello from STM32H7!"
+ros2 topic echo /chatter
+```
