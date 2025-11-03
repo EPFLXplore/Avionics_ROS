@@ -64,7 +64,7 @@ You should also see a difference when doing `lsusb`, if the command line blocks 
 When running the microROS command that terminal window is now blocked, open a new one, source and you are ready to interact with the board!
 
 ```cpp
-source install/local_setup.bash
+source /opt/ros/humble/setup.bash
 
 #List topics
 ros2 topic list
