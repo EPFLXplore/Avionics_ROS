@@ -1,7 +1,0 @@
-../System/MicroROS/usb_cdc_transport.c:38:15:CDC_TransmitCplt_FS	24	static
-../System/MicroROS/usb_cdc_transport.c:49:15:CDC_Control_FS	16	static
-../System/MicroROS/usb_cdc_transport.c:76:15:CDC_Receive_FS	24	static
-../System/MicroROS/usb_cdc_transport.c:101:6:cubemx_transport_open	16	static
-../System/MicroROS/usb_cdc_transport.c:115:6:cubemx_transport_close	16	static
-../System/MicroROS/usb_cdc_transport.c:119:8:cubemx_transport_write	56	static
-../System/MicroROS/usb_cdc_transport.c:139:8:cubemx_transport_read	56	static

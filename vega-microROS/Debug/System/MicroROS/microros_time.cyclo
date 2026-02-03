@@ -1,2 +1,0 @@
-../System/MicroROS/microros_time.c:9:6:UTILS_NanosecondsToTimespec	2
-../System/MicroROS/microros_time.c:29:5:clock_gettime	1
