@@ -1,6 +1,5 @@
 To launch microros:
 
-
 Source ROS2 base folder: source /opt/ros/humble/setup.bash
 
 Source microROS base folder: source /uros_ws/install/local_setup.bash
