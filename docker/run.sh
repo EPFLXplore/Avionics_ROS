@@ -3,7 +3,8 @@ set -e
 
 CONTAINER_NAME=${CONTAINER_NAME:-elec_humble_local}
 IMAGE_NAME=${IMAGE_NAME:-elec:humble-local}
-USERNAME=${USERNAME:-xplore}
+# This is the user defined INSIDE your Dockerfile
+INTERNAL_USER="xplore"
 
 # ----------------------------------------
 # Setup X11 GUI permissions
@@ -21,22 +22,15 @@ if [ ! -f "$XAUTH" ]; then
     chmod a+r "$XAUTH"
 fi
 
-echo "Done."
-echo ""
-echo "Xauthority file info:"
-file "$XAUTH" || true
-ls -FAlh "$XAUTH"
-echo ""
-
 # ----------------------------------------
-# Workspace mount
+# Workspace mount logic
 # ----------------------------------------
 current_dir=$(pwd)
 parent_dir=$(dirname "$current_dir")
 
 echo "Mounting workspace:"
-echo "  Host: $parent_dir"
-echo "  ->   /home/$USERNAME/dev_ws/src"
+echo "  Host:   $parent_dir"
+echo "  Target: /home/$INTERNAL_USER/dev_ws/src"
 echo ""
 
 # ----------------------------------------
@@ -55,8 +49,7 @@ docker run -it \
     -v "$XAUTH":"$XAUTH" \
     -v /run/user/1000/at-spi:/run/user/1000/at-spi \
     -v /dev:/dev \
-    -v "$parent_dir":/home/$USERNAME/dev_ws/src \
-    -v elec_humble_local_home_volume:/home/$USERNAME \
+    -v "$parent_dir":/home/$INTERNAL_USER/dev_ws/src \
+    -v elec_humble_local_home_volume:/home/$INTERNAL_USER \
     "$IMAGE_NAME" \
-    -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; exec /bin/bash"
-
+    -c "sudo chown -R $INTERNAL_USER:$INTERNAL_USER /home/$INTERNAL_USER; exec /bin/bash"
