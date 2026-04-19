@@ -58,6 +58,7 @@ RUN apt-get update && apt-get install -y \
       libgstreamer-plugins-base1.0-dev \
       python3-pip \
       python3-rosdep \
+      python3-colcon-common-extensions \
       && ACCEPT_EULA=Y apt-get install -y ubuntu-restricted-extras
 
 # ARM toolchain included for x86 builds; harmless on ARM
@@ -99,11 +100,25 @@ RUN pip3 install --no-cache-dir numpy pymodbus pyserial minimalmodbus
 # ROS2 dev workspace
 # --------------------------------------------------------
 WORKDIR /home/$USERNAME/dev_ws/src
-COPY . .
+COPY --chown=$USERNAME:$USERNAME . .
 
 WORKDIR /home/$USERNAME/dev_ws
 
-# Auto-source dev_ws (Only need to source the user's workspace now)
+# --------------------------------------------------------
+# Build custom messages (from submodule docker/micro_ros_custom_msgs)
+# into a persistent workspace so the agent always has them available
+# --------------------------------------------------------
+WORKDIR /home/$USERNAME/custom_msgs_ws/src
+COPY --chown=$USERNAME:$USERNAME docker/micro_ros_custom_msgs ./custom_msg
+
+WORKDIR /home/$USERNAME/custom_msgs_ws
+RUN . /opt/ros/humble/setup.sh && \
+    colcon build --symlink-install
+
+RUN echo "source /home/${USERNAME}/custom_msgs_ws/install/setup.bash" \
+    >> /home/${USERNAME}/.bashrc
+
+# Auto-source dev_ws on top of custom_msgs_ws
 RUN echo "if [ -f /home/${USERNAME}/dev_ws/install/setup.bash ]; then source /home/${USERNAME}/dev_ws/install/setup.bash; fi" \
     >> /home/${USERNAME}/.bashrc
 
