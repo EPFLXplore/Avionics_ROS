@@ -48,6 +48,7 @@ docker run -it \
     --privileged \
     --net=host \
     --entrypoint /bin/bash \
+    -e ROS_DOMAIN_ID=0 \
     -e DISPLAY=unix$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY="$XAUTH" \
