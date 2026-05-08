@@ -32,10 +32,10 @@ echo ""
 # Workspace mount
 # ----------------------------------------
 current_dir=$(pwd)
-parent_dir=$(dirname "$current_dir")
+src_dir="$current_dir/src"
 
 echo "Mounting workspace:"
-echo "  Host: $parent_dir"
+echo "  Host: $src_dir"
 echo "  ->   /home/$USERNAME/dev_ws/src"
 echo ""
 
@@ -56,7 +56,7 @@ docker run -it \
     -v "$XAUTH":"$XAUTH" \
     -v /run/user/1000/at-spi:/run/user/1000/at-spi \
     -v /dev:/dev \
-    -v "$parent_dir":/home/$USERNAME/dev_ws/src \
+    -v "$src_dir":/home/$USERNAME/dev_ws/src \
     -v elec_humble_local_home_volume:/home/$USERNAME \
     "$IMAGE_NAME" \
     -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; exec /bin/bash"
