@@ -8,5 +8,5 @@
 	path = src/ERC_SE_CustomMessages
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
 [submodule "docker/micro_ros_custom_msgs"]
-	path = docker/micro_ros_custom_msgs
+	path = docker/src/custom_msg
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
