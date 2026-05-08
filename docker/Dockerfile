@@ -97,32 +97,18 @@ USER $USERNAME
 RUN pip3 install --no-cache-dir numpy pymodbus pyserial minimalmodbus
 
 # --------------------------------------------------------
-# Build custom messages (from submodule docker/micro_ros_custom_msgs)
-# into a persistent workspace so the agent always has them available
-# --------------------------------------------------------
-WORKDIR /home/$USERNAME/custom_msgs_ws/src
-COPY --chown=$USERNAME:$USERNAME docker/src/custom_msg ./custom_msg
-
-WORKDIR /home/$USERNAME/custom_msgs_ws
-RUN . /opt/ros/humble/setup.sh && \
-    colcon build --symlink-install
-
-RUN echo "source /home/${USERNAME}/custom_msgs_ws/install/setup.bash" \
-    >> /home/${USERNAME}/.bashrc
-
-# --------------------------------------------------------
-# ROS2 dev workspace — python_node built into the image
+# Build custom messages + python node
 # --------------------------------------------------------
 WORKDIR /home/$USERNAME/dev_ws/src
+COPY --chown=$USERNAME:$USERNAME docker/src/custom_msg ./custom_msg
 COPY --chown=$USERNAME:$USERNAME docker/src/python_node ./python_node
 
 WORKDIR /home/$USERNAME/dev_ws
 RUN . /opt/ros/humble/setup.sh && \
-    . /home/${USERNAME}/custom_msgs_ws/install/setup.bash && \
     colcon build --symlink-install
 
-# Auto-source dev_ws on top of custom_msgs_ws
-RUN echo "if [ -f /home/${USERNAME}/dev_ws/install/setup.bash ]; then source /home/${USERNAME}/dev_ws/install/setup.bash; fi" \
+RUN echo "source /home/${USERNAME}/dev_ws/install/setup.bash" \
     >> /home/${USERNAME}/.bashrc
 
+USER $USERNAME
 WORKDIR /home/$USERNAME
