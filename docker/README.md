@@ -35,8 +35,8 @@ Source the workspace:
 ```bash
 source /opt/ros/humble/setup.bash
 source /uros_ws/install/local_setup.bash
-source ~/dev_ws/install/setup.bash
-source ~/custom_msgs_ws/install/setup.bash
+source dev_ws/install/setup.bash
+source custom_msgs_ws/install/setup.bash
 ```
 
 Launch the Python node:
