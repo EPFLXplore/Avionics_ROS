@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CYCLONE_XML="${CYCLONE_XML:-$SCRIPT_DIR/cyclonedds.xml}"
+CYCLONE_XML_CONTAINER="/etc/cyclonedds/cyclonedds.xml"
+
 CONTAINER_NAME=${CONTAINER_NAME:-elec_humble_local}
 IMAGE_NAME=${IMAGE_NAME:-elec:humble-local}
 USERNAME=${USERNAME:-xplore}
+
+if [ ! -f "$CYCLONE_XML" ]; then
+    echo "error: Cyclone DDS config not found: $CYCLONE_XML" >&2
+    exit 1
+fi
 
 # ----------------------------------------
 # Setup X11 GUI permissions
@@ -49,6 +58,7 @@ docker run -it \
     --net=host \
     --entrypoint /bin/bash \
     -e ROS_DOMAIN_ID=0 \
+    -e CYCLONEDDS_URI="file://${CYCLONE_XML_CONTAINER}" \
     -e DISPLAY=unix$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
     -e XAUTHORITY="$XAUTH" \
@@ -57,7 +67,7 @@ docker run -it \
     -v /run/user/1000/at-spi:/run/user/1000/at-spi \
     -v /dev:/dev \
     -v "$src_dir":/home/$USERNAME/dev_ws/src \
+    -v "$CYCLONE_XML":"$CYCLONE_XML_CONTAINER":ro \
     -v elec_humble_local_home_volume:/home/$USERNAME \
     "$IMAGE_NAME" \
-    -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; exec /bin/bash"
-
+    -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd /home/$USERNAME; ${*:-exec /bin/bash}"
