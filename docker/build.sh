@@ -14,7 +14,7 @@ echo "Dockerfile: $DOCKERFILE"
 echo "Context:    $CONTEXT_DIR"
 echo ""
 
-docker build --progress=plain -t "$IMAGE_NAME" -f "$DOCKERFILE" "$CONTEXT_DIR"
+docker build --network=host --progress=plain -t "$IMAGE_NAME" -f "$DOCKERFILE" "$CONTEXT_DIR"
 
 echo ""
 echo "--------------------------------------------------------------"

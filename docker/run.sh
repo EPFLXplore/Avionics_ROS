@@ -7,7 +7,7 @@ CYCLONE_XML_CONTAINER="/etc/cyclonedds/cyclonedds.xml"
 
 CONTAINER_NAME=${CONTAINER_NAME:-elec_humble_local}
 IMAGE_NAME=${IMAGE_NAME:-elec:humble-local}
-USERNAME=${USERNAME:-xplore}
+USERNAME=xplore
 
 if [ ! -f "$CYCLONE_XML" ]; then
     echo "error: Cyclone DDS config not found: $CYCLONE_XML" >&2
@@ -67,6 +67,7 @@ docker run -it \
     -v /run/user/1000/at-spi:/run/user/1000/at-spi \
     -v /dev:/dev \
     -v "$src_dir":/home/$USERNAME/dev_ws/src \
+    -v "$SCRIPT_DIR/scripts":/home/$USERNAME/scripts \
     -v "$CYCLONE_XML":"$CYCLONE_XML_CONTAINER":ro \
     -v elec_humble_local_home_volume:/home/$USERNAME \
     "$IMAGE_NAME" \
