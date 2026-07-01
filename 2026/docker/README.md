@@ -1,6 +1,6 @@
 # Avionics Docker
 
-Image: `elec:humble-local` — based on `microros/micro-ros-agent:humble`, adds ROS 2 Humble Desktop, the custom workspace (`custom_msg` + `python_node`), and Python serial/Modbus libraries.
+Image: `elec:humble-local` — based on `ros:humble`, adds ROS 2 Humble Desktop, the custom workspace (`custom_msg` + `python_node` + `avionics_nexus`), and Python serial/Modbus libraries. micro-ROS has been removed: the `avionics_nexus` bridge talks to the MCUs directly over USB-CDC.
 
 Builds natively on both **x86-64 (PC)** and **arm64 (Raspberry Pi 5)**.
 
@@ -48,10 +48,10 @@ To open a second shell into a running container:
 
 The workspace is **auto-sourced** via `.bashrc` — no manual `source` needed for `dev_ws`.
 
-If you need the micro-ROS overlay explicitly:
+Launch the serial bridge (one Nexus node per master board, hardcoded in the launch file):
 
 ```bash
-source /uros_ws/install/local_setup.bash
+ros2 launch avionics_nexus bridge.launch.py
 ```
 
 Launch the Python node:
@@ -60,17 +60,15 @@ Launch the Python node:
 ros2 launch python_node python_launch.py
 ```
 
-Run the micro-ROS agent over USB serial (second terminal):
-
-```bash
-ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0 -b 115200
-```
+No micro-ROS agent is needed — `avionics_nexus` opens the MCU's USB-CDC port
+(`/dev/ttyACM0`, or a `/dev/serial/by-id/...` path) directly.
 
 ### Workspace packages
 
 | Package | Description |
 |---------|-------------|
 | `custom_msg` | Custom ROS 2 message/service/action definitions |
+| `avionics_nexus` | USB-serial bridge: MCU master boards ↔ ROS 2 topics |
 | `python_node` | Main avionics Python node |
 
 ### Python libraries available

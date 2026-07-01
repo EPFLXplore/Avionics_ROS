@@ -8,7 +8,7 @@
 # CHANGE 1: Use the pre-built micro-ros-agent image as base
 # It already includes a ROS 2 installation and the micro-ROS Agent.
 # --------------------------------------------------------
-FROM microros/micro-ros-agent:humble
+FROM ros:humble
 
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -102,6 +102,7 @@ RUN pip3 install --no-cache-dir numpy pymodbus pyserial minimalmodbus
 WORKDIR /home/$USERNAME/dev_ws/src
 COPY --chown=$USERNAME:$USERNAME docker/src/custom_msg ./custom_msg
 COPY --chown=$USERNAME:$USERNAME docker/src/python_node ./python_node
+COPY --chown=$USERNAME:$USERNAME docker/src/avionics_nexus ./avionics_nexus
 
 WORKDIR /home/$USERNAME/dev_ws
 RUN . /opt/ros/humble/setup.sh && \

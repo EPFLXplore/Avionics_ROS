@@ -1,0 +1,25 @@
+# Nova avionics master boards (STM32 USB-CDC, VID 0483 : PID 5740).
+#
+# The firmware sets the USB serial to "NOVA<board-id>" from the PB4/PB5 straps
+# (see usbd_desc.c / Board_MasterId), so each master is identified by its ROLE,
+# not by which physical chip or which order it was plugged in. udev then gives
+# each a stable symlink: /dev/ttyNova0 .. /dev/ttyNova3.
+#
+# Install on the HOST (udev runs on the host; the container sees the symlinks via
+# the mounted /dev):
+#     sudo cp 99-nova.rules /etc/udev/rules.d/
+#     sudo udevadm control --reload-rules && sudo udevadm trigger
+# Check:  ls -l /dev/ttyNova*   and   udevadm info -a -n /dev/ttyACM0 | grep -i serial
+
+# Named masters: serial "NOVA<id>" -> /dev/ttyNova<id>. The trailing GOTO stops
+# the catch-all below from ALSO matching (which is what created the duplicate).
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="NOVA0", SYMLINK+="ttyNova0", GROUP="dialout", MODE="0660", GOTO="nova_end"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="NOVA1", SYMLINK+="ttyNova1", GROUP="dialout", MODE="0660", GOTO="nova_end"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="NOVA2", SYMLINK+="ttyNova2", GROUP="dialout", MODE="0660", GOTO="nova_end"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{serial}=="NOVA3", SYMLINK+="ttyNova3", GROUP="dialout", MODE="0660", GOTO="nova_end"
+
+# Fallback: a Nova board whose serial isn't NOVA0..3 (e.g. old UID-serial
+# firmware) -> name it by its reported serial, e.g. /dev/ttyNova_208932755330.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="ttyNova_%s{serial}", GROUP="dialout", MODE="0660"
+
+LABEL="nova_end"
