@@ -1,12 +1,3 @@
-[submodule "BRoCo"]
-	path = BRoCo
-	url = git@github.com:EPFLXplore/BRoCo.git
-[submodule "custom_msg"]
-	path = custom_msg
-	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
-[submodule "src/ERC_SE_CustomMessages"]
-	path = src/ERC_SE_CustomMessages
-	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
 [submodule "2026/docker/src/custom_msg"]
 	path = 2026/docker/src/custom_msg
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
