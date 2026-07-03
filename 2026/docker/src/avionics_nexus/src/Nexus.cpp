@@ -6,7 +6,7 @@
  * pubs/subs ready, the FIRST frame of each kind, the FIRST command forwarded,
  * write failures) plus a periodic count pulse, but never log per-packet data.
  * First-of-kind lines use *_ONCE; the link-down warning fires once per
- * disconnect (down-transition), and the 5s timer reports ongoing state.
+ * disconnect (down-transition), and the 15s timer reports ongoing state.
  */
 
 #include "Nexus.hpp"
@@ -39,7 +39,7 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req");
 
     /* Periodic link-health pulse (proves comms are up without spamming data). */
-    status_timer_ = create_wall_timer(5s, [this]() {
+    status_timer_ = create_wall_timer(15s, [this]() {
         const unsigned rb = rx_bytes_.load();
         const unsigned rf = rx_frames_.load();
         const unsigned tf = tx_frames_.load();
@@ -47,16 +47,17 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
         last_rx_bytes_ = rb;
 
         if (!link_up_.load())
-            RCLCPP_WARN(get_logger(), "[%s] link DOWN: port not open, waiting for (re)connect...", port_.c_str());
+            RCLCPP_WARN(get_logger(), "[%s] link DOWN: port not open, waiting for (re)connect... (%u commands dropped)",
+                        port_.c_str(), tx_dropped_.load());
         else if (delta == 0)
-            RCLCPP_WARN(get_logger(), "[%s] link stalled: port open but no new bytes in 5s (MCU unplugged/hung?)",
+            RCLCPP_WARN(get_logger(), "[%s] link stalled: port open but no new bytes in 15s (MCU unplugged/hung?)",
                         port_.c_str());
         else if (rf == 0)
             RCLCPP_WARN(get_logger(), "[%s] receiving bytes (+%u) but no valid frames yet, check framing/CRC",
                         port_.c_str(), delta);
         else
             RCLCPP_INFO(get_logger(),
-                        "[%s] link up: +%u bytes/5s (rx %u frames, tx %u, crc_err %u, bad_len %u, reconnects %u)",
+                        "[%s] link up: +%u bytes/15s (rx %u frames, tx %u, crc_err %u, bad_len %u, reconnects %u)",
                         port_.c_str(), delta, rf, tf,
                         proto_.crcErrors(), proto_.badLen(), reconnects_.load());
     });
@@ -91,7 +92,7 @@ void Nexus::rxLoop() {
                 proto_.parse(chunk, n, [this](const Frame& f) { onFrame(f); });
             }
         } catch (const std::exception& e) {
-            // Warn once on the down-transition; the 5s status timer covers the
+            // Warn once on the down-transition; the 15s status timer covers the
             // ongoing DOWN state, so we don't repeat it every 500ms retry.
             if (link_up_.exchange(false)) {
                 ++reconnects_;
@@ -136,7 +137,15 @@ void Nexus::onFrame(const Frame& f) {
 
 /* ----------------------------- TX: ROS -> serial ------------------------- */
 
+bool Nexus::txReady(const char* what) {
+    if (link_up_.load()) return true;
+    ++tx_dropped_;
+    RCLCPP_DEBUG(get_logger(), "[%s] link down: %s dropped", port_.c_str(), what);
+    return false;
+}
+
 void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
+    if (!txReady("ServoRequest")) return;
     ::ServoRequest packet{};
     packet.id = msg->id;
     packet.increment = msg->increment;
@@ -151,9 +160,11 @@ void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
 }
 
 void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
+    if (!txReady("MassRequest")) return;
     ::MassRequest packet{};
     packet.id = msg->id;
     packet.tare = msg->tare ? 1 : 0;
+    packet.change_scale = msg->change_scale ? 1 : 0;
     packet.scale = msg->scale;
     if (proto_.send(MassRequest_ID, &packet, sizeof packet)) {
         ++tx_frames_;
@@ -165,6 +176,7 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
 }
 
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
+    if (!txReady("LEDRequest")) return;
     ::LEDRequest packet{};
     packet.system = msg->system;
     packet.mode = msg->mode;

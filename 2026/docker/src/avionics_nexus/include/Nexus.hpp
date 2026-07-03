@@ -54,6 +54,11 @@ class Nexus : public rclcpp::Node {
     void onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg);
     void onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg);
 
+    /* TX gate: commands are broadcast to every Nexus, but only the ports with a
+     * live link forward them. Down link -> count + drop silently (DEBUG), so a
+     * command aimed at master 0 doesn't make masters 1..3 warn-spam. */
+    bool txReady(const char* what);
+
     /* size-checked reinterpret of a frame payload as a wire struct */
     template <class T>
     static T as(const Frame& f) {
@@ -93,6 +98,7 @@ class Nexus : public rclcpp::Node {
     std::atomic<unsigned> rx_bytes_{0};
     std::atomic<unsigned> rx_frames_{0};
     std::atomic<unsigned> tx_frames_{0};
+    std::atomic<unsigned> tx_dropped_{0}; // commands dropped while the link was down
     unsigned last_rx_bytes_{0};           // snapshot from the previous status tick (executor-thread only)
 };
 

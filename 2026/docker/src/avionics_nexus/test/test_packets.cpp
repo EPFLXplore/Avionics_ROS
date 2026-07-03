@@ -17,14 +17,14 @@
 static_assert(sizeof(MassPacket)   == 5, "MassPacket wire size drift");
 static_assert(sizeof(Heartbeat)    == 1, "Heartbeat wire size drift");
 static_assert(sizeof(ServoRequest) == 6, "ServoRequest wire size drift");
-static_assert(sizeof(MassRequest)  == 6, "MassRequest wire size drift");
+static_assert(sizeof(MassRequest)  == 7, "MassRequest wire size drift");
 static_assert(sizeof(LEDRequest)   == 2, "LEDRequest wire size drift");
 
 TEST(PacketWireContract, PackedSizes) {
     EXPECT_EQ(sizeof(MassPacket),   5u);
     EXPECT_EQ(sizeof(Heartbeat),    1u);
     EXPECT_EQ(sizeof(ServoRequest), 6u);
-    EXPECT_EQ(sizeof(MassRequest),  6u);
+    EXPECT_EQ(sizeof(MassRequest),  7u);
     EXPECT_EQ(sizeof(LEDRequest),   2u);
 }
 
