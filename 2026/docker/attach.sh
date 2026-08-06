@@ -3,7 +3,11 @@ set -e
 
 # You can override these via env if needed
 CONTAINER_NAME=${CONTAINER_NAME:-elec_humble_local}
-USERNAME=${USERNAME:-xplore}
+
+# NOT ${USERNAME:-xplore}: many desktops export USERNAME, so the host login
+# name would leak in and point at /home/<you> inside the container. This is
+# the user created in the Dockerfile - hardcoded, same as run.sh.
+USERNAME=xplore
 
 echo "Attaching to container: $CONTAINER_NAME"
 echo ""
@@ -48,6 +52,8 @@ fi
 echo "Container is running. Opening an interactive shell..."
 echo ""
 
-# Source user's .bashrc inside the container so ROS/micro-ROS env is loaded
-docker exec -it "${CONTAINER_NAME}" /bin/bash -c "source /home/${USERNAME}/.bashrc; exec /bin/bash"
+# The interactive shell reads .bashrc itself, which sets up the ROS env and
+# sources the workspace overlay - nothing to source here.
+# -w drops you in dev_ws, so colcon is always run from the workspace root.
+docker exec -it -w "/home/${USERNAME}/dev_ws" "${CONTAINER_NAME}" /bin/bash
 

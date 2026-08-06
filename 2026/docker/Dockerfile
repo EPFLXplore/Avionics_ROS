@@ -97,18 +97,26 @@ USER $USERNAME
 RUN pip3 install --no-cache-dir numpy pymodbus pyserial minimalmodbus
 
 # --------------------------------------------------------
-# Build custom messages + python node
+# Workspace skeleton
 # --------------------------------------------------------
-WORKDIR /home/$USERNAME/dev_ws/src
-COPY --chown=$USERNAME:$USERNAME docker/src/custom_msg ./custom_msg
-COPY --chown=$USERNAME:$USERNAME docker/src/python_node ./python_node
-COPY --chown=$USERNAME:$USERNAME docker/src/avionics_nexus ./avionics_nexus
-
+# The workspace is deliberately NOT built here. This image builds the
+# environment; the workspace is built inside the container, against the src/
+# that run.sh bind-mounts from the host. A colcon build at image build time is
+# masked at runtime anyway: run.sh mounts a named volume over the whole home,
+# and a named volume is seeded from the image only once, when it is first
+# created, then never refreshed - so a baked install silently freezes at
+# whatever the volume captured on day one.
 WORKDIR /home/$USERNAME/dev_ws
-RUN . /opt/ros/humble/setup.sh && \
-    colcon build --symlink-install
+RUN mkdir -p src
 
-RUN echo "source /home/${USERNAME}/dev_ws/install/setup.bash" \
+# .bashrc is the only place the environment gets sourced (run.sh/attach.sh just
+# open a shell). The underlay must be unconditional: --entrypoint /bin/bash in
+# run.sh bypasses the base image's ros_entrypoint.sh, so nothing else sources
+# /opt/ros. The overlay is guarded - install/ does not exist until the first
+# in-container colcon build.
+RUN echo "source /opt/ros/humble/setup.bash" \
+    >> /home/${USERNAME}/.bashrc && \
+    echo "[ -f /home/${USERNAME}/dev_ws/install/setup.bash ] && source /home/${USERNAME}/dev_ws/install/setup.bash" \
     >> /home/${USERNAME}/.bashrc
 
 USER $USERNAME

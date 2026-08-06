@@ -71,4 +71,4 @@ docker run -it \
     -v "$CYCLONE_XML":"$CYCLONE_XML_CONTAINER":ro \
     -v elec_humble_local_home_volume:/home/$USERNAME \
     "$IMAGE_NAME" \
-    -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd /home/$USERNAME; source dev_ws/install/setup.bash; ${*:-exec /bin/bash}"
+    -c "sudo chown -R $USERNAME:$USERNAME /home/$USERNAME; cd /home/$USERNAME/dev_ws; exec /bin/bash"
