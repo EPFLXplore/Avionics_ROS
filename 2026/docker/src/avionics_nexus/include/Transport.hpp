@@ -23,6 +23,7 @@
 
 #include <cerrno>
 #include <fcntl.h>
+#include <poll.h>
 #include <termios.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -64,22 +65,49 @@ class PosixTransport {
         return ::write(fd_, d, n) == static_cast<ssize_t>(n);
     }
 
-    /** Read up to max bytes available now. Returns 0 when nothing is available
-     *  yet (EAGAIN, the normal idle case with O_NONBLOCK); throws
-     *  std::runtime_error when the device went away, so the RX loop reconnects.
+    /** Read up to max bytes. Blocks in poll() for at most kPollTimeoutMs, so an
+     *  idle link parks the thread instead of spinning; returns 0 on timeout.
+     *  Throws std::runtime_error when the device went away, so the RX loop
+     *  reconnects.
      *
-     *  On unplug the tty hangs up: ::read() then returns 0 (EOF) or -1 with
-     *  EIO/ENODEV/ENXIO. Only EAGAIN/EWOULDBLOCK means "still connected, just no
-     *  data"; everything else (including r == 0) is a disconnect. */
+     *  poll() rather than a blocking read(): the fd stays O_NONBLOCK (needed so
+     *  open() fails fast on a dead port), which would otherwise make read()
+     *  return EAGAIN instantly and burn a whole core. Clearing O_NONBLOCK and
+     *  leaning on VMIN=0/VTIME=1 is not an option either - a blocking read()
+     *  then returns 0 on *timeout*, which is indistinguishable from EOF.
+     *
+     *  On unplug the tty hangs up: poll() reports POLLHUP, or ::read() returns
+     *  0 (EOF) or -1 with EIO/ENODEV/ENXIO. Only EAGAIN/EWOULDBLOCK means
+     *  "still connected, just no data". */
     uint16_t read(uint8_t* dst, uint16_t max) {
+        if (fd_ < 0) throw std::runtime_error("serial read: port not open");
+
+        pollfd pfd{};
+        pfd.fd     = fd_;
+        pfd.events = POLLIN;
+
+        const int pr = ::poll(&pfd, 1, kPollTimeoutMs);
+        if (pr < 0) {
+            if (errno == EINTR) return 0;   // signal, not an error
+            throw std::runtime_error(std::string("serial poll: ") + std::strerror(errno));
+        }
+        if (pr == 0) return 0;              // idle: nothing arrived within the timeout
+        if (pfd.revents & (POLLHUP | POLLERR | POLLNVAL))
+            throw std::runtime_error("serial poll: device hung up (unplugged?)");
+
         ssize_t r = ::read(fd_, dst, max);
         if (r > 0) return static_cast<uint16_t>(r);
         if (r == 0) throw std::runtime_error("serial read: EOF (device unplugged?)");
-        if (errno == EAGAIN || errno == EWOULDBLOCK) return 0; // connected, no data now
+        if (errno == EAGAIN || errno == EWOULDBLOCK) return 0; // raced with poll, fine
         throw std::runtime_error(std::string("serial read: ") + std::strerror(errno));
     }
 
   private:
+    /** How long read() parks waiting for bytes. Long enough that an idle link
+     *  costs ~nothing, short enough that shutdown and stall detection stay
+     *  responsive. */
+    static constexpr int kPollTimeoutMs = 100;
+
     int fd_ = -1;
 };
 

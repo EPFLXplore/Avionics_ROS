@@ -76,6 +76,7 @@ Nexus::~Nexus() {
 
 void Nexus::rxLoop() {
     uint8_t chunk[128];
+    auto last_rx = std::chrono::steady_clock::now();
     while (running_) {
         try {
             // (Re)connect: the port vanishes on unplug and reappears (same udev
@@ -83,13 +84,26 @@ void Nexus::rxLoop() {
             if (!io_.ok()) {
                 io_.open(port_);
                 link_up_ = true;
+                last_rx = std::chrono::steady_clock::now(); // don't inherit the old link's silence
                 RCLCPP_INFO(get_logger(), "[%s] serial port opened (USB-FS CDC)", port_.c_str());
             }
-            uint16_t n = io_.read(chunk, sizeof chunk); // returns 0 when idle; throws on unplug
+            uint16_t n = io_.read(chunk, sizeof chunk); // parks up to 100ms; throws on unplug
             if (n) {
                 rx_bytes_ += n;
+                last_rx = std::chrono::steady_clock::now();
                 RCLCPP_INFO_ONCE(get_logger(), "[%s] first bytes received from the MCU", port_.c_str());
                 proto_.parse(chunk, n, [this](const Frame& f) { onFrame(f); });
+            } else if (std::chrono::steady_clock::now() - last_rx > kStallTimeout) {
+                // Self-heal. The fd is still valid and read() never errored, but
+                // the MCU stopped talking: a hung TX ring on the firmware side,
+                // a USB suspend, or a re-enumeration onto a different ttyACM
+                // minor while we held the old one. None of those ever make
+                // read() throw, so without this the link stays dead forever and
+                // even a replug does not recover it. Throwing hands over to the
+                // catch below, which is the same proven close/reopen path used
+                // for a real unplug.
+                throw std::runtime_error("no bytes for " +
+                                         std::to_string(kStallTimeout.count()) + "s (MCU silent)");
             }
         } catch (const std::exception& e) {
             // Warn once on the down-transition; the 15s status timer covers the

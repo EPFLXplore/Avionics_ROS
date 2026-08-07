@@ -18,6 +18,7 @@
 #define NEXUS_HPP
 
 #include <atomic>
+#include <chrono>
 #include <cstring>
 #include <thread>
 
@@ -76,6 +77,11 @@ class Nexus : public rclcpp::Node {
                     port_.c_str(), what, static_cast<unsigned>(f.length), sizeof(T));
         return false;
     }
+
+    /* Silence budget before the RX loop tears the port down and reopens it.
+     * The MCU heartbeats at ~10 Hz, so 3 s of nothing is unambiguously dead,
+     * while still being far longer than any legitimate gap. */
+    static constexpr std::chrono::seconds kStallTimeout{3};
 
     PosixTransport io_;
     Proto proto_{io_};
