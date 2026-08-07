@@ -123,7 +123,7 @@ void Nexus::onFrame(const Frame& f) {
             if (!lengthOk<::Heartbeat>(f, "Heartbeat")) break;
             ::Heartbeat packet = as<::Heartbeat>(f);
             custom_msg::msg::Heartbeat msg;
-            msg.dummy = packet.dummy;
+            msg.board_id = packet.board_id;
             hb_pub_->publish(msg);
             RCLCPP_INFO_ONCE(get_logger(), "[%s] first Heartbeat received and published to /EL/heartbeat",
                              port_.c_str());
@@ -148,8 +148,8 @@ void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
     if (!txReady("ServoRequest")) return;
     ::ServoRequest packet{};
     packet.id = msg->id;
-    packet.increment = msg->increment;
-    packet.zero_in = msg->zero_in ? 1 : 0;
+    packet.angle = msg->angle;
+    packet.go_to_zero = msg->go_to_zero ? 1 : 0;
     if (proto_.send(ServoRequest_ID, &packet, sizeof packet)) {
         ++tx_frames_;
         RCLCPP_INFO_ONCE(get_logger(), "[%s] first ServoRequest forwarded to the MCU (id %u)",
