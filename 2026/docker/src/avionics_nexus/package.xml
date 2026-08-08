@@ -13,6 +13,8 @@
   <depend>custom_msg</depend>
 
   <exec_depend>ros2launch</exec_depend>
+  <!-- bridge.launch.py resolves the installed mass_cal.yaml fallback -->
+  <exec_depend>ament_index_python</exec_depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

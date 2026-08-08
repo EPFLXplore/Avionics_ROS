@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cmath>
 #include <cstring>
 #include <thread>
 
@@ -60,6 +61,15 @@ class Nexus : public rclcpp::Node {
      * command aimed at master 0 doesn't make masters 1..3 warn-spam. */
     bool txReady(const char* what);
 
+    /* Calibration replay: push the configured slopes to a freshly connected MCU.
+     * The MCU keeps its slope in RAM, so every reset (power cycle, watchdog,
+     * reflash) drops it back to the firmware fallback in MassThread.h. Both of
+     * those re-enumerate USB, which the RX loop sees as a reconnect - so
+     * replaying on every link-up is what makes mass_cal.yaml the source of
+     * truth without any flash writes on the MCU. */
+    void replayCalibration();
+    void sendMassScale(uint8_t id, float scale);
+
     /* size-checked reinterpret of a frame payload as a wire struct */
     template <class T>
     static T as(const Frame& f) {
@@ -82,6 +92,9 @@ class Nexus : public rclcpp::Node {
      * The MCU heartbeats at ~10 Hz, so 3 s of nothing is unambiguously dead,
      * while still being far longer than any legitimate gap. */
     static constexpr std::chrono::seconds kStallTimeout{3};
+
+    /* Load cells behind one master (MassThread owns exactly mass_0 and mass_1). */
+    static constexpr uint8_t kMassCells = 2;
 
     PosixTransport io_;
     Proto proto_{io_};
@@ -106,6 +119,12 @@ class Nexus : public rclcpp::Node {
     std::atomic<unsigned> tx_frames_{0};
     std::atomic<unsigned> tx_dropped_{0}; // commands dropped while the link was down
     unsigned last_rx_bytes_{0};           // snapshot from the previous status tick (executor-thread only)
+
+    /* calibration replay state */
+    double slopes_[kMassCells];              // from mass_cal.yaml; NaN = unconfigured, leave the firmware fallback
+    rclcpp::TimerBase::SharedPtr cal_timer_;
+    std::atomic<bool> cal_pending_{false};   // set by rxLoop on link-up, cleared once the executor has sent
+    std::atomic<unsigned> frames_at_open_{0}; // rx_frames_ snapshot at link-up: readiness baseline
 };
 
 #endif // NEXUS_HPP

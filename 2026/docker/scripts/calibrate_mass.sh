@@ -10,8 +10,9 @@
 #   4. wait for a steady reading, average it
 #   5. slope := reference / counts  -> sent to the MCU + printed for hardcoding
 #
-# The MCU keeps the new slope in RAM only: hardcode the printed value in
-# MassThread.h (MassType::slope) to survive a reset.
+# The MCU keeps the new slope in RAM only. To survive a reset, put the printed
+# value in mass_cal.yaml (Nexus replays it on every link-up) or, as the
+# fallback used when nothing is configured there, in MassThread.h.
 #
 # Usage: ./calibrate_mass.sh <cell-id 0|1> <reference-mass-grams>
 
@@ -119,5 +120,13 @@ if [ "$ok" != "yes" ]; then
 fi
 
 echo
-echo "done. to survive resets, hardcode in MassThread.h:"
-echo "    float slope = ${scale}f;"
+echo "done. the MCU holds this slope in RAM only - to survive a reset, either:"
+echo
+echo "  [preferred] set it in src/avionics_nexus/config/mass_cal.yaml, then"
+echo "              restart the bridge (Nexus replays it on every link-up;"
+echo "              the file is bind-mounted, so no colcon build needed):"
+echo "      mass_slope_id_${ID}: ${scale}"
+echo
+echo "  [firmware fallback] hardcode in MassThread.h (MassType::slope) - only"
+echo "              used when no slope is configured above:"
+echo "      float slope = ${scale}f;"

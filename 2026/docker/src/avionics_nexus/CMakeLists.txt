@@ -35,6 +35,12 @@ install(TARGETS avionics_nexus
 install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME})
 
+# Calibration lives here too, but the launch file prefers the copy in the
+# bind-mounted src/ tree so editing a slope needs only a node restart. This
+# installed copy is the fallback for runs outside the dev container.
+install(DIRECTORY config
+  DESTINATION share/${PROJECT_NAME})
+
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
   # Wire-contract test: packed struct sizes + distinct ids (see test_packets.cpp).

@@ -1,0 +1,16 @@
+/**:
+  ros__parameters:
+    # Load-cell calibration slopes, one per cell id.
+    #
+    # Produced by scripts/calibrate_mass.sh; Nexus replays them to the MCU so
+    # the calibration survives a power cycle without reflashing the firmware.
+    #
+    # This file is read from the bind-mounted src/ tree (run.sh mounts it at
+    # ~/dev_ws/src), so editing a slope needs a node restart - not a colcon
+    # build.
+    #
+    # Values below are the firmware defaults carried over from
+    # MassThread.h (MassType::slope), which both cells shared.
+
+    mass_slope_id_0: -0.0014164446
+    mass_slope_id_1: -0.0014164446

@@ -7,8 +7,25 @@ periodically, and attach the moment they appear (hotplug, no relaunch). So this
 launch file just starts that one process.
 """
 
+import os
+
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch_ros.actions import Node
+
+
+def mass_cal_file():
+    """Path to the load-cell calibration.
+
+    Prefer the copy in the bind-mounted src/ tree (run.sh mounts the host's src/
+    at ~/dev_ws/src): editing a slope there takes effect on the next node start,
+    with no colcon build to re-copy it into install/. Outside the dev container
+    that path is absent, so fall back to the installed share/ copy.
+    """
+    src = os.path.expanduser("~/dev_ws/src/avionics_nexus/config/mass_cal.yaml")
+    if os.path.exists(src):
+        return src
+    return os.path.join(get_package_share_directory("avionics_nexus"), "config", "mass_cal.yaml")
 
 
 def generate_launch_description():
@@ -18,5 +35,6 @@ def generate_launch_description():
             executable="avionics_nexus",
             name="avionics_nexus",
             output="screen",
+            parameters=[mass_cal_file()],
         )
     ])

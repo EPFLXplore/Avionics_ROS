@@ -12,7 +12,9 @@
 #include "Nexus.hpp"
 
 #include <chrono>
+#include <limits>
 #include <stdexcept>
+#include <string>
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -37,6 +39,24 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
     led_sub_ = create_subscription<custom_msg::msg::LEDRequest>(
         "/EL/led_req", 10, std::bind(&Nexus::onLedReq, this, _1));
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req");
+
+    /* Calibration: one slope per load cell, replayed to the MCU on every link-up.
+     * Unset (NaN) means "no calibration configured": we then send nothing and the
+     * MCU keeps the fallback compiled into MassThread.h, which is strictly better
+     * than pushing a made-up number. */
+    const double unset = std::numeric_limits<double>::quiet_NaN();
+    for (uint8_t cell = 0; cell < kMassCells; ++cell) {
+        slopes_[cell] = declare_parameter("mass_slope_id_" + std::to_string(cell), unset);
+        if (std::isfinite(slopes_[cell]))
+            RCLCPP_INFO(get_logger(), "cell %u calibration slope %.10f", cell, slopes_[cell]);
+        else
+            RCLCPP_WARN(get_logger(), "cell %u has no configured slope: the MCU will keep its firmware fallback", cell);
+    }
+
+    /* Executor-side half of the replay. rxLoop only raises cal_pending_; the send
+     * itself has to happen here because proto_.send() belongs to the executor
+     * thread (see the thread-safety note in Nexus.hpp). */
+    cal_timer_ = create_wall_timer(500ms, [this]() { replayCalibration(); });
 
     /* Periodic link-health pulse (proves comms are up without spamming data). */
     status_timer_ = create_wall_timer(15s, [this]() {
@@ -85,6 +105,10 @@ void Nexus::rxLoop() {
                 io_.open(port_);
                 link_up_ = true;
                 last_rx = std::chrono::steady_clock::now(); // don't inherit the old link's silence
+                // A new link means a possibly-reset MCU, i.e. slopes back at the
+                // firmware fallback. Arm the replay; the executor does the send.
+                frames_at_open_ = rx_frames_.load();
+                cal_pending_ = true;
                 RCLCPP_INFO(get_logger(), "[%s] serial port opened (USB-FS CDC)", port_.c_str());
             }
             uint16_t n = io_.read(chunk, sizeof chunk); // parks up to 100ms; throws on unplug
@@ -186,6 +210,41 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
                          port_.c_str(), packet.id);
     } else {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (MassRequest)", port_.c_str());
+    }
+}
+
+/* --------------------------- calibration replay -------------------------- */
+
+void Nexus::replayCalibration() {
+    if (!cal_pending_.load() || !link_up_.load()) return;
+
+    // Wait for proof the MCU is actually running, not just that the port opened:
+    // USB enumerates while the firmware is still early in boot, and a MassRequest
+    // sent then races MassThread::init(), whose tare + 600ms settle come after.
+    // One received frame is the cheapest evidence the far side is alive.
+    if (rx_frames_.load() == frames_at_open_.load()) return;
+
+    cal_pending_ = false;
+    for (uint8_t cell = 0; cell < kMassCells; ++cell) {
+        if (!std::isfinite(slopes_[cell])) continue; // unconfigured: firmware fallback stands
+        sendMassScale(cell, static_cast<float>(slopes_[cell]));
+    }
+}
+
+void Nexus::sendMassScale(uint8_t id, float scale) {
+    ::MassRequest packet{};
+    packet.id = id;
+    packet.tare = 0;
+    packet.change_scale = 1;
+    packet.scale = scale;
+    if (proto_.send(MassRequest_ID, &packet, sizeof packet)) {
+        ++tx_frames_;
+        RCLCPP_INFO(get_logger(), "[%s] calibration replayed to the MCU: cell %u slope %.10f",
+                    port_.c_str(), id, static_cast<double>(scale));
+    } else {
+        RCLCPP_WARN(get_logger(), "[%s] serial write failed (calibration replay, cell %u): "
+                                  "the MCU is running its firmware fallback slope",
+                    port_.c_str(), id);
     }
 }
 
