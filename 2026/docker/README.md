@@ -82,3 +82,72 @@ docker rmi elec:humble-local
 docker volume rm elec_humble_local_home_volume
 ./build.sh
 ```
+
+## Note — handy messages
+
+### Mass
+
+Quick commands for poking the MCU by hand, with the bridge running.
+
+**Read a value**
+
+```bash
+ros2 topic echo /EL/mass_packet
+```
+
+**Tare a load cell** (zero it — the scale must be EMPTY):
+
+```bash
+ros2 topic pub --once /EL/mass_req custom_msg/msg/MassRequest \
+  "{id: 1, tare: true, change_scale: false, scale: 0.0}"
+```
+
+Use `id: 1` for the other cell. `scale` is ignored when `change_scale` is false.
+
+| id | mass |
+|----|-------|
+| 0  | rocks & sand |
+| 1  | drill |
+
+
+**Override a calibration slope** at runtime (what `calibrate_mass.sh` sends):
+
+```bash
+ros2 topic pub --once /EL/mass_req custom_msg/msg/MassRequest \
+  "{id: 1, tare: false, change_scale: true, scale: 0.000517406}"
+```
+
+This lives in RAM on the MCU and is lost on reset. For a persistent value, put
+it in `src/avionics_nexus/config/mass_cal.yaml` (`mass_slope_id_0` /
+`mass_slope_id_1`). Nexus replays those to the MCU on every link-up, so a
+power cycle or a reflash no longer costs you the calibration. That file is
+bind-mounted, so editing a slope needs a node restart, not a `colcon build`.
+The slopes compiled into `MassThread.h` are only the fallback used when nothing
+is configured there.
+
+### Servo
+
+**Move a servo** (`angle` in degrees):
+
+```bash
+ros2 topic pub --once /EL/servo_req custom_msg/msg/ServoRequest \
+  "{id: 1, angle: 90, go_to_zero: false}"
+```
+
+Back to zero:
+
+```bash
+ros2 topic pub --once /EL/servo_req custom_msg/msg/ServoRequest \
+  "{id: 1, angle: 0, go_to_zero: true}"
+```
+
+The id is the physical PWM channel (`Servos_ID` in the firmware's
+`ServoThread.h`):
+
+| id | servo |
+|----|-------|
+| 0  | front camera |
+| 1  | drill |
+
+
+
