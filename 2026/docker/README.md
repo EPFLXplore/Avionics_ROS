@@ -25,6 +25,8 @@ docker build --no-cache --network=host --progress=plain -t elec:humble-local -f 
 
 ## Run
 
+### 1. Run the docker container
+
 ```bash
 ./run.sh
 ```
@@ -44,9 +46,13 @@ To open a second shell into a running container:
 ./attach.sh
 ```
 
-## Inside the container
+### 3. Source
 
-The workspace is **auto-sourced** via `.bashrc` — no manual `source` needed for `dev_ws`.
+```bash
+source install/setup.bash
+```
+
+### 3. Run avionics
 
 Launch the serial bridge (one Nexus node per master board, hardcoded in the launch file):
 
@@ -54,33 +60,16 @@ Launch the serial bridge (one Nexus node per master board, hardcoded in the laun
 ros2 launch avionics_nexus bridge.launch.py
 ```
 
-Launch the Python node:
+On another terminal launch the Python node:
 
 ```bash
 ros2 launch python_node python_launch.py
 ```
 
-No micro-ROS agent is needed — `avionics_nexus` opens the MCU's USB-CDC port
-(`/dev/ttyACM0`, or a `/dev/serial/by-id/...` path) directly.
-
-### Workspace packages
-
-| Package | Description |
-|---------|-------------|
-| `custom_msg` | Custom ROS 2 message/service/action definitions |
-| `avionics_nexus` | USB-serial bridge: MCU master boards ↔ ROS 2 topics |
-| `python_node` | Main avionics Python node |
-
-### Python libraries available
-
-`numpy`, `pymodbus`, `pyserial`, `minimalmodbus`
-
-## Rebuild workspace inside the container
-
 If you edit `src/` and need to rebuild:
 
 ```bash
-cd ~/dev_ws && colcon build --symlink-install
+colcon build
 ```
 
 ## Clean reset
