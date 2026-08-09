@@ -1,6 +1,26 @@
 /**:
   ros__parameters:
-    # Load-cell calibration slopes, one per cell id.
+    # Load-cell calibration slopes, one per load cell DEVICE, named after the
+    # device rather than numbered.
+    #
+    # Each key below is bound at COMPILE TIME to a MassId from device_ids.h (see
+    # MASS_PARAMS in Nexus.hpp): the build fails if a MassId has no key, or if
+    # the two lists fall out of order. So a slope written under a name here can
+    # only ever be replayed to that cell - renumbering MassId does not silently
+    # repoint it, and swapping two lines cannot swap two calibrations.
+    #
+    # A slope belongs to a physical scale, so it follows that scale when it is
+    # moved to another connector or another master; nothing here changes when
+    # hardware moves.
+    #
+    # Every Nexus node (masters 0..3) declares every key and replays every
+    # configured slope to its master on link-up. The board that does not carry a
+    # given cell drops the frame (deviceFor() -> nullptr in MassThread), so this
+    # file needs no notion of which master serves what.
+    #
+    # Adding a cell: add it to MassId in device_ids.h, add the matching line to
+    # MASS_PARAMS in Nexus.hpp, then add its slope here. The `/**:` wildcard
+    # means all four nodes pick it up automatically.
     #
     # Produced by scripts/calibrate_mass.sh; Nexus replays them to the MCU so
     # the calibration survives a power cycle without reflashing the firmware.
@@ -12,5 +32,5 @@
     # Values below are the firmware defaults carried over from
     # MassThread.h (MassType::slope), which both cells shared.
 
-    mass_slope_id_0: 0.000517406
-    mass_slope_id_1: 0.000517406
+    mass_slope_sand_rocks: 0.000517406
+    mass_slope_drill:      0.000517406

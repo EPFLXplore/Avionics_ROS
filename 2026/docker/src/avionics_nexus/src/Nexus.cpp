@@ -44,23 +44,30 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
         "/EL/led_req", qos, std::bind(&Nexus::onLedReq, this, _1));
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req");
 
-    /* Calibration: one slope per load cell, replayed to the MCU on every link-up.
-     * Unset (NaN) means "no calibration configured": we then send nothing and the
-     * MCU keeps the fallback compiled into MassThread.h, which is strictly better
-     * than pushing a made-up number. */
+    /* Calibration: one slope per load cell DEVICE, replayed to the MCU on every
+     * link-up. Keyed by global MassId from device_ids.h, not by connector index:
+     * a slope belongs to a physical scale, so it follows that scale when it moves
+     * to another connector or another master. Unset (NaN) means "no calibration
+     * configured": we then send nothing and the MCU keeps the fallback compiled
+     * into MassThread.h, which is strictly better than pushing a made-up number.
+     *
+     * Every node declares every id - see MASS_ID_COUNT in Nexus.hpp. The board
+     * that does not carry a given cell simply drops the frame. */
     const double unset = std::numeric_limits<double>::quiet_NaN();
-    for (uint8_t cell = 0; cell < MASS_CELLS; ++cell) {
-        slopes_[cell] = declare_parameter("mass_slope_id_" + std::to_string(cell), unset);
-        if (std::isfinite(slopes_[cell]))
-            RCLCPP_INFO(get_logger(), "cell %u calibration slope %.10f", cell, slopes_[cell]);
+    for (std::size_t i = 0; i < MASS_ID_COUNT; ++i) {
+        const MassParam& p = MASS_PARAMS[i];
+        slopes_[i] = declare_parameter(p.param, unset);
+        if (std::isfinite(slopes_[i]))
+            RCLCPP_INFO(get_logger(), "%s (mass id %u) calibration slope %.10f", p.param, p.id, slopes_[i]);
         else
-            RCLCPP_WARN(get_logger(), "cell %u has no configured slope: the MCU will keep its firmware fallback", cell);
+            RCLCPP_WARN(get_logger(), "%s (mass id %u) has no configured slope: the MCU will keep its "
+                                      "firmware fallback", p.param, p.id);
     }
 
-    /* Executor-side half of the replay. rxLoop only raises cal_pending_; the send
+    /* Executor-side half of the replay. rxLoop only raises link_ready_pending_; the send
      * itself has to happen here because proto_.send() belongs to the executor
      * thread (see the thread-safety note in Nexus.hpp). */
-    cal_timer_ = create_wall_timer(500ms, [this]() { replayCalibration(); });
+    cal_timer_ = create_wall_timer(500ms, [this]() { onLinkReady(); });
 
     /* Periodic link-health pulse (proves comms are up without spamming data). */
     status_timer_ = create_wall_timer(15s, [this]() {
@@ -112,7 +119,7 @@ void Nexus::rxLoop() {
                 // A new link means a possibly-reset MCU, i.e. slopes back at the
                 // firmware fallback. Arm the replay; the executor does the send.
                 frames_at_open_ = rx_frames_.load();
-                cal_pending_ = true;
+                link_ready_pending_ = true;
                 RCLCPP_INFO(get_logger(), "[%s] serial port opened (USB-FS CDC)", port_.c_str());
             }
             uint16_t n = io_.read(chunk, sizeof chunk); // parks up to 100ms; throws on unplug
@@ -157,7 +164,7 @@ void Nexus::onFrame(const Frame& f) {
             msg.id = packet.id;
             msg.mass = packet.mass;
             mass_pub_->publish(msg);
-            RCLCPP_INFO_ONCE(get_logger(), "[%s] first MassPacket (cell %u) received and published to /EL/mass_packet",
+            RCLCPP_INFO_ONCE(get_logger(), "[%s] first MassPacket (mass id %u) received and published to /EL/mass_packet",
                              port_.c_str(), packet.id);
             break;
         }
@@ -188,6 +195,11 @@ bool Nexus::txReady(const char* what) {
 
 void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
     if (!txReady("ServoRequest")) return;
+    if (!knownId(ALL_SERVO_IDS, msg->id))
+        RCLCPP_WARN_ONCE(get_logger(),
+                         "[%s] ServoRequest id %u is not a ServoId in device_ids.h: forwarded, but no "
+                         "board can match it, so every master will drop it",
+                         port_.c_str(), msg->id);
     ::ServoRequest packet{};
     packet.id = msg->id;
     packet.angle = msg->angle;
@@ -203,6 +215,11 @@ void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
 
 void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
     if (!txReady("MassRequest")) return;
+    if (!knownId(ALL_MASS_IDS, msg->id))
+        RCLCPP_WARN_ONCE(get_logger(),
+                         "[%s] MassRequest id %u is not a MassId in device_ids.h: forwarded, but no "
+                         "board can match it, so every master will drop it",
+                         port_.c_str(), msg->id);
     ::MassRequest packet{};
     packet.id = msg->id;
     packet.tare = msg->tare ? 1 : 0;
@@ -210,7 +227,7 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
     packet.scale = msg->scale;
     if (proto_.send(MassRequest_ID, &packet, sizeof packet)) {
         ++tx_frames_;
-        RCLCPP_INFO_ONCE(get_logger(), "[%s] first MassRequest forwarded to the MCU (cell %u)",
+        RCLCPP_INFO_ONCE(get_logger(), "[%s] first MassRequest forwarded to the MCU (mass id %u)",
                          port_.c_str(), packet.id);
     } else {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (MassRequest)", port_.c_str());
@@ -219,8 +236,8 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
 
 /* --------------------------- calibration replay -------------------------- */
 
-void Nexus::replayCalibration() {
-    if (!cal_pending_.load() || !link_up_.load()) return;
+void Nexus::onLinkReady() {
+    if (!link_ready_pending_.load() || !link_up_.load()) return;
 
     // Wait for proof the MCU is actually running, not just that the port opened:
     // USB enumerates while the firmware is still early in boot, and a MassRequest
@@ -228,14 +245,44 @@ void Nexus::replayCalibration() {
     // One received frame is the cheapest evidence the far side is alive.
     if (rx_frames_.load() == frames_at_open_.load()) return;
 
-    cal_pending_ = false;
-    for (uint8_t cell = 0; cell < MASS_CELLS; ++cell) {
-        if (!std::isfinite(slopes_[cell])) continue; // unconfigured: firmware fallback stands
-        sendMassScale(cell, static_cast<float>(slopes_[cell]));
+    link_ready_pending_ = false;
+    replayCalibration();
+    sendAvionicsLedOn();
+}
+
+void Nexus::replayCalibration() {
+    // Broadcast every configured slope to this master. We do not filter by board:
+    // Nexus has no board profile, and the MCU already drops ids it does not carry.
+    for (std::size_t i = 0; i < MASS_ID_COUNT; ++i) {
+        if (!std::isfinite(slopes_[i])) continue; // unconfigured: firmware fallback stands
+        sendMassScale(MASS_PARAMS[i].id, static_cast<float>(slopes_[i]));
+    }
+}
+
+void Nexus::sendAvionicsLedOn() {
+    ::LEDRequest packet{};
+    packet.system = LED_SYSTEM_AVIONICS;
+    packet.mode   = LED_MODE_ON;
+    if (proto_.send(LEDRequest_ID, &packet, sizeof packet)) {
+        ++tx_frames_;
+        RCLCPP_INFO(get_logger(), "[%s] avionics LED set ON (system %u, mode %u)",
+                    port_.c_str(), packet.system, packet.mode);
+    } else {
+        RCLCPP_WARN(get_logger(), "[%s] serial write failed (avionics LED on)", port_.c_str());
     }
 }
 
 void Nexus::sendMassScale(uint8_t id, float scale) {
+    /* Last line of defence before a slope hits the wire. The static_asserts in
+     * Nexus.hpp already pin name<->id, so reaching this means someone called us
+     * with an id that came from somewhere else. A calibration sent under a wrong
+     * id would be applied by whichever cell does answer to it, silently
+     * corrupting a good scale - so refuse rather than forward. */
+    if (!knownId(ALL_MASS_IDS, id)) {
+        RCLCPP_ERROR(get_logger(), "[%s] refusing to replay calibration under id %u: not a MassId in "
+                                   "device_ids.h", port_.c_str(), id);
+        return;
+    }
     ::MassRequest packet{};
     packet.id = id;
     packet.tare = 0;
@@ -243,10 +290,10 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
     packet.scale = scale;
     if (proto_.send(MassRequest_ID, &packet, sizeof packet)) {
         ++tx_frames_;
-        RCLCPP_INFO(get_logger(), "[%s] calibration replayed to the MCU: cell %u slope %.10f",
+        RCLCPP_INFO(get_logger(), "[%s] calibration replayed to the MCU: mass id %u slope %.10f",
                     port_.c_str(), id, static_cast<double>(scale));
     } else {
-        RCLCPP_WARN(get_logger(), "[%s] serial write failed (calibration replay, cell %u): "
+        RCLCPP_WARN(get_logger(), "[%s] serial write failed (calibration replay, mass id %u): "
                                   "the MCU is running its firmware fallback slope",
                     port_.c_str(), id);
     }
