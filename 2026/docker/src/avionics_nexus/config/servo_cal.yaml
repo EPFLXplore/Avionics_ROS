@@ -1,0 +1,27 @@
+/**:
+  ros__parameters:
+    # Servo home positions, one per servo DEVICE, named after the device.
+    #
+    # The angle in degrees that a ServoRequest{go_to_zero = true} drives to, and
+    # the position every channel is placed at during ServoThread::init().
+    #
+    # Applied ON THE MCU: Nexus replays these over ServoRequest{change_zero} on
+    # every link-up, and the firmware converts them to microseconds with the same
+    # constexpr map it uses for a commanded angle - so a configured home and a
+    # commanded angle can never disagree.
+    #
+    # Each key is bound at COMPILE TIME to a ServoIdType from device_ids.h (see
+    # SERVO_PARAMS in Nexus.h): the build fails if a ServoIdType has no key, or
+    # if the two lists fall out of order, so a home angle cannot land on the
+    # wrong servo.
+    #
+    # Leave a key out entirely to keep the firmware default (SERVO_ZERO_DEG in
+    # PWMDriver.h, currently 0 deg). That is deliberate: an invented home angle
+    # would drive real hardware somewhere on the next go_to_zero.
+    #
+    # Range is 0..180; anything outside is clamped by angleToPulseUs().
+
+    servo_zero_front_cam:             0.0
+    servo_zero_drill:                 0.0
+    servo_zero_left_service_module:   0.0
+    servo_zero_right_service_module:  0.0

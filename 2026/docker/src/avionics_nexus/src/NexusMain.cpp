@@ -9,19 +9,82 @@
  * as before.
  *
  * All nodes share ONE SingleThreadedExecutor: every subscription callback across
- * every node is serialised onto one thread, which is what makes proto_.send()
+ * every node is serialised onto one thread, which is what makes _proto.send()
  * safe without a mutex (each node's RX thread is the only other user of its wire).
  */
 
+#include <filesystem>
+#include <fstream>
+#include <map>
 #include <memory>
+#include <string>
 #include <vector>
 
-#include "Nexus.hpp"
+#include "Nexus.h"
+
+namespace {
+
+/**
+ * Warn if two masters are strapped to the same board id.
+ *
+ * The strap picks both the board profile and the USB serial ("NOVA<id>"), and
+ * 99-nova.rules turns that serial into /dev/ttyNova<id>. Two boards answering to
+ * one id therefore both claim the SAME symlink: udev points it at one of them,
+ * the other becomes invisible to ROS, and a replug can silently move it to the
+ * other physical board - same topic, same device ids, different hardware.
+ *
+ * Nothing else can catch this. noDuplicateIds() in the firmware checks the
+ * profile TABLE, and two boards on the same strap are both legitimately row 0.
+ * Nexus cannot see the second board at all, because it has no port to open. So
+ * the only place with the whole picture is here, before any node exists: sysfs
+ * lists every enumerated device, symlink collision or not.
+ *
+ * Read straight from sysfs rather than via libudev - no dependency, and the
+ * three files we need are plain text.
+ */
+void warnOnDuplicateBoardIds(const rclcpp::Logger& log) {
+    constexpr const char* VID = "0483";   // STMicroelectronics
+    constexpr const char* PID = "5740";   // STM32 Virtual ComPort
+    const std::filesystem::path root{"/sys/bus/usb/devices"};
+
+    std::error_code ec;
+    if (!std::filesystem::exists(root, ec)) return;   // not Linux, or no sysfs
+
+    auto readTrimmed = [](const std::filesystem::path& p) -> std::string {
+        std::ifstream f(p);
+        std::string v;
+        std::getline(f, v);
+        return v;
+    };
+
+    std::map<std::string, std::vector<std::string>> byserial;  // serial -> device dirs
+    for (const auto& e : std::filesystem::directory_iterator(root, ec)) {
+        if (readTrimmed(e.path() / "idVendor")  != VID) continue;
+        if (readTrimmed(e.path() / "idProduct") != PID) continue;
+        const std::string serial = readTrimmed(e.path() / "serial");
+        if (!serial.empty()) byserial[serial].push_back(e.path().filename().string());
+    }
+
+    for (const auto& [serial, devices] : byserial) {
+        if (devices.size() < 2) continue;
+        std::string where;
+        for (const auto& d : devices) where += (where.empty() ? "" : ", ") + d;
+        RCLCPP_ERROR(log,
+            "TWO MASTERS ARE STRAPPED TO THE SAME BOARD ID: %zu devices report serial '%s' "
+            "(usb %s). They both claim /dev/tty%s, so only one is reachable and a replug can "
+            "move commands to the other board. Fix the PB4/PB5 straps.",
+            devices.size(), serial.c_str(), where.c_str(), serial.c_str());
+    }
+}
+
+} // namespace
 
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     auto log = rclcpp::get_logger("avionics_nexus");
     RCLCPP_INFO(log, "avionics_nexus starting: bringing up masters 0..3 (absent ones will warn + retry)");
+
+    warnOnDuplicateBoardIds(log);
 
     rclcpp::executors::SingleThreadedExecutor exec;
     std::vector<std::shared_ptr<Nexus>> nodes;

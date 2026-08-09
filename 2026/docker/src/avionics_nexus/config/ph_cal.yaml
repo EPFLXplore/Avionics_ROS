@@ -1,0 +1,31 @@
+/**:
+  ros__parameters:
+    # pH probe calibration. Applied ON THE MCU: Nexus replays these two numbers
+    # over PhRequest on every link-up, and the firmware publishes finished pH
+    # values. Nothing on this side converts anything.
+    #
+    #   ph = slope * volts + offset
+    #
+    # where `volts` is the raw ADS1114 differential reading. To calibrate, read
+    # PhType::volts in the debugger (pHMeterThread keeps the last raw value) in
+    # two buffer solutions of known pH, solve the line, and put it here.
+    #
+    #   slope  = (pH_a - pH_b) / (V_a - V_b)      [pH per volt]
+    #   offset =  pH_a - slope * V_a              [pH at 0 V]
+    #
+    # There is no device id here or on the wire: the rover has one probe and only
+    # ever will, so PhRequest names it by being the only one. The keys are read
+    # by PH_SLOPE_PARAM / PH_OFFSET_PARAM in Nexus.hpp.
+    #
+    # BOTH numbers must be present for Nexus to replay anything - half a
+    # calibration is worse than none, because the firmware fallback in
+    # pHMeterThread.h at least has the right slope sign and magnitude.
+    #
+    # The values below are that fallback, spelled out: the ideal Nernst response
+    # of the glass electrode at 25 C. The pH hat buffers the electrode at unity gain
+    # into the ADS1114 differential pair, so `volts` IS the electrode EMF: 59.16
+    # mV/pH, 0 V at pH 7. Replace with a real calibration - electrode slope
+    # degrades with age, which is exactly what calibrating against buffers measures.
+
+    ph_slope_solution:  -16.904
+    ph_offset_solution:   7.0

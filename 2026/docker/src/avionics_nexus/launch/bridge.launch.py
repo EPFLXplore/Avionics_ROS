@@ -14,7 +14,7 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 
-def mass_cal_file():
+def config_file(name):
     """Path to the load-cell calibration.
 
     Prefer the copy in the bind-mounted src/ tree (run.sh mounts the host's src/
@@ -22,10 +22,10 @@ def mass_cal_file():
     with no colcon build to re-copy it into install/. Outside the dev container
     that path is absent, so fall back to the installed share/ copy.
     """
-    src = os.path.expanduser("~/dev_ws/src/avionics_nexus/config/mass_cal.yaml")
+    src = os.path.expanduser("~/dev_ws/src/avionics_nexus/config/" + name)
     if os.path.exists(src):
         return src
-    return os.path.join(get_package_share_directory("avionics_nexus"), "config", "mass_cal.yaml")
+    return os.path.join(get_package_share_directory("avionics_nexus"), "config", name)
 
 
 def generate_launch_description():
@@ -35,6 +35,7 @@ def generate_launch_description():
             executable="avionics_nexus",
             name="avionics_nexus",
             output="screen",
-            parameters=[mass_cal_file()],
+            parameters=[config_file("mass_cal.yaml"), config_file("ph_cal.yaml"),
+                        config_file("servo_cal.yaml")],
         )
     ])
