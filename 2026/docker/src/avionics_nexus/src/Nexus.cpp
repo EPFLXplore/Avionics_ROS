@@ -16,6 +16,7 @@
 #include <stdexcept>
 #include <string>
 
+
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
@@ -26,18 +27,21 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
 
     RCLCPP_INFO(get_logger(), "Nexus[%d] starting on %s (connects + auto-reconnects)", id, port_.c_str());
 
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
+
     /* Telemetry: MCU -> RP */
-    mass_pub_ = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", 10);
-    hb_pub_ = create_publisher<custom_msg::msg::Heartbeat>("/EL/heartbeat", 10);
+    mass_pub_ = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", qos);
+    hb_pub_ = create_publisher<custom_msg::msg::Heartbeat>("/EL/heartbeat", qos);
     RCLCPP_INFO(get_logger(), "publishers ready: /EL/mass_packet, /EL/heartbeat");
+
 
     /* Commands: RP -> MCU */
     servo_sub_ = create_subscription<custom_msg::msg::ServoRequest>(
-        "/EL/servo_req", 10, std::bind(&Nexus::onServoReq, this, _1));
+        "/EL/servo_req", qos, std::bind(&Nexus::onServoReq, this, _1));
     mass_sub_ = create_subscription<custom_msg::msg::MassRequest>(
-        "/EL/mass_req", 10, std::bind(&Nexus::onMassReq, this, _1));
+        "/EL/mass_req", qos, std::bind(&Nexus::onMassReq, this, _1));
     led_sub_ = create_subscription<custom_msg::msg::LEDRequest>(
-        "/EL/led_req", 10, std::bind(&Nexus::onLedReq, this, _1));
+        "/EL/led_req", qos, std::bind(&Nexus::onLedReq, this, _1));
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req");
 
     /* Calibration: one slope per load cell, replayed to the MCU on every link-up.
@@ -45,7 +49,7 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
      * MCU keeps the fallback compiled into MassThread.h, which is strictly better
      * than pushing a made-up number. */
     const double unset = std::numeric_limits<double>::quiet_NaN();
-    for (uint8_t cell = 0; cell < kMassCells; ++cell) {
+    for (uint8_t cell = 0; cell < MASS_CELLS; ++cell) {
         slopes_[cell] = declare_parameter("mass_slope_id_" + std::to_string(cell), unset);
         if (std::isfinite(slopes_[cell]))
             RCLCPP_INFO(get_logger(), "cell %u calibration slope %.10f", cell, slopes_[cell]);
@@ -117,7 +121,7 @@ void Nexus::rxLoop() {
                 last_rx = std::chrono::steady_clock::now();
                 RCLCPP_INFO_ONCE(get_logger(), "[%s] first bytes received from the MCU", port_.c_str());
                 proto_.parse(chunk, n, [this](const Frame& f) { onFrame(f); });
-            } else if (std::chrono::steady_clock::now() - last_rx > kStallTimeout) {
+            } else if (std::chrono::steady_clock::now() - last_rx > STALL_TIMEOUT) {
                 // Self-heal. The fd is still valid and read() never errored, but
                 // the MCU stopped talking: a hung TX ring on the firmware side,
                 // a USB suspend, or a re-enumeration onto a different ttyACM
@@ -127,7 +131,7 @@ void Nexus::rxLoop() {
                 // catch below, which is the same proven close/reopen path used
                 // for a real unplug.
                 throw std::runtime_error("no bytes for " +
-                                         std::to_string(kStallTimeout.count()) + "s (MCU silent)");
+                                         std::to_string(STALL_TIMEOUT.count()) + "s (MCU silent)");
             }
         } catch (const std::exception& e) {
             // Warn once on the down-transition; the 15s status timer covers the
@@ -225,7 +229,7 @@ void Nexus::replayCalibration() {
     if (rx_frames_.load() == frames_at_open_.load()) return;
 
     cal_pending_ = false;
-    for (uint8_t cell = 0; cell < kMassCells; ++cell) {
+    for (uint8_t cell = 0; cell < MASS_CELLS; ++cell) {
         if (!std::isfinite(slopes_[cell])) continue; // unconfigured: firmware fallback stands
         sendMassScale(cell, static_cast<float>(slopes_[cell]));
     }
@@ -260,3 +264,4 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (LEDRequest)", port_.c_str());
     }
 }
+

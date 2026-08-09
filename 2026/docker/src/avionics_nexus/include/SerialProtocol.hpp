@@ -32,7 +32,7 @@
  *  Typical use on the transmitting side:
  *      SerialProtocol<128, MyTransport> proto(io);
  *      MyPacket pkt{ ... };
- *      proto.send(kMyPacketId, &pkt, sizeof(pkt));
+ *      proto.send(MY_PACKET_ID, &pkt, sizeof(pkt));
  *
  *  On the receiving side (inside the comms loop):
  *      uint8_t chunk[64];
@@ -77,8 +77,8 @@ class SerialProtocol {
         uint16_t n = 0;
 
         /* Start-of-frame markers (see comment of processByte) */
-        buf[n++] = kStx1;
-        buf[n++] = kStx2;
+        buf[n++] = STX1;
+        buf[n++] = STX2;
 
         /* Length = id + payload = 1 + payload */
         const uint16_t L = static_cast<uint16_t>(len + 1);
@@ -136,12 +136,12 @@ class SerialProtocol {
         switch (state_) {
             /**** 0xA5 hunt ****/
             case State::Stx1:
-                if (b == kStx1) state_ = State::Stx2;
+                if (b == STX1) state_ = State::Stx2;
                 break;
 
             /**** 0x5A confirmation ****/
             case State::Stx2:
-                state_ = (b == kStx2) ? State::LenLo : State::Stx1;
+                state_ = (b == STX2) ? State::LenLo : State::Stx1;
                 break;
 
             /**** length low byte ****/
@@ -207,8 +207,8 @@ class SerialProtocol {
   private:
     enum class State : uint8_t { Stx1, Stx2, LenLo, LenHi, Id, Payload, CrcLo, CrcHi };
 
-    static constexpr uint8_t kStx1 = 0xA5;                       // start token 1
-    static constexpr uint8_t kStx2 = 0x5A;                       // start token 2
+    static constexpr uint8_t STX1 = 0xA5;                       // start token 1
+    static constexpr uint8_t STX2 = 0x5A;                       // start token 2
     static constexpr uint16_t MaxFrame = MaxPayload + 7;         // STX2 + len2 + id1 + payload + crc2
 
     Transport& io_;            // wire abstraction (compile-time policy)

@@ -65,7 +65,7 @@ class PosixTransport {
         return ::write(fd_, d, n) == static_cast<ssize_t>(n);
     }
 
-    /** Read up to max bytes. Blocks in poll() for at most kPollTimeoutMs, so an
+    /** Read up to max bytes. Blocks in poll() for at most POLL_TIMEOUT_MS, so an
      *  idle link parks the thread instead of spinning; returns 0 on timeout.
      *  Throws std::runtime_error when the device went away, so the RX loop
      *  reconnects.
@@ -86,7 +86,7 @@ class PosixTransport {
         pfd.fd     = fd_;
         pfd.events = POLLIN;
 
-        const int pr = ::poll(&pfd, 1, kPollTimeoutMs);
+        const int pr = ::poll(&pfd, 1, POLL_TIMEOUT_MS);
         if (pr < 0) {
             if (errno == EINTR) return 0;   // signal, not an error
             throw std::runtime_error(std::string("serial poll: ") + std::strerror(errno));
@@ -106,7 +106,7 @@ class PosixTransport {
     /** How long read() parks waiting for bytes. Long enough that an idle link
      *  costs ~nothing, short enough that shutdown and stall detection stay
      *  responsive. */
-    static constexpr int kPollTimeoutMs = 100;
+    static constexpr int POLL_TIMEOUT_MS = 100;
 
     int fd_ = -1;
 };

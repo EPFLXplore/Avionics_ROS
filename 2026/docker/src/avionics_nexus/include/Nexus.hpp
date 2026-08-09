@@ -91,10 +91,10 @@ class Nexus : public rclcpp::Node {
     /* Silence budget before the RX loop tears the port down and reopens it.
      * The MCU heartbeats at ~10 Hz, so 3 s of nothing is unambiguously dead,
      * while still being far longer than any legitimate gap. */
-    static constexpr std::chrono::seconds kStallTimeout{3};
+    static constexpr std::chrono::seconds STALL_TIMEOUT{3};
 
     /* Load cells behind one master (MassThread owns exactly mass_0 and mass_1). */
-    static constexpr uint8_t kMassCells = 2;
+    static constexpr uint8_t MASS_CELLS = 2;
 
     PosixTransport io_;
     Proto proto_{io_};
@@ -121,7 +121,7 @@ class Nexus : public rclcpp::Node {
     unsigned last_rx_bytes_{0};           // snapshot from the previous status tick (executor-thread only)
 
     /* calibration replay state */
-    double slopes_[kMassCells];              // from mass_cal.yaml; NaN = unconfigured, leave the firmware fallback
+    double slopes_[MASS_CELLS];              // from mass_cal.yaml; NaN = unconfigured, leave the firmware fallback
     rclcpp::TimerBase::SharedPtr cal_timer_;
     std::atomic<bool> cal_pending_{false};   // set by rxLoop on link-up, cleared once the executor has sent
     std::atomic<unsigned> frames_at_open_{0}; // rx_frames_ snapshot at link-up: readiness baseline

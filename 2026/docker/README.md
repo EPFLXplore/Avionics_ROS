@@ -102,14 +102,6 @@ ros2 topic pub --once /EL/mass_req custom_msg/msg/MassRequest \
   "{id: 1, tare: true, change_scale: false, scale: 0.0}"
 ```
 
-Use `id: 1` for the other cell. `scale` is ignored when `change_scale` is false.
-
-| id | mass |
-|----|-------|
-| 0  | rocks & sand |
-| 1  | drill |
-
-
 **Override a calibration slope** at runtime (what `calibrate_mass.sh` sends):
 
 ```bash
@@ -141,13 +133,6 @@ ros2 topic pub --once /EL/servo_req custom_msg/msg/ServoRequest \
   "{id: 1, angle: 0, go_to_zero: true}"
 ```
 
-The id is the physical PWM channel (`Servos_ID` in the firmware's
-`ServoThread.h`):
-
-| id | servo |
-|----|-------|
-| 0  | front camera |
-| 1  | drill |
 
 
 
