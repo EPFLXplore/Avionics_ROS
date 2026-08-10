@@ -225,45 +225,15 @@ void Nexus::onFrame(const Frame& f) {
 
 /* ----------------------------- TX: ROS -> serial ------------------------- */
 
-/**
- * Packet id -> the name to print for it.
- *
- * The only place a wire id becomes words. txReady() used to take the name
- * directly as a string, which meant "ServoRequest" and friends were hand-copied
- * spellings of types the build already knows about, free to drift from the
- * structs they named. Taking the id instead makes the caller pass the same
- * constant it is about to hand _proto.send(), so the label cannot describe a
- * different packet than the one that was dropped.
- *
- * Covers the RX ids too, though txReady() only ever asks about the requests:
- * this answers "what is packet id N", and a partial answer to that would be a
- * trap the first time it is used anywhere else.
- */
-static const char* packetName(uint8_t id) {
-    switch (id) {
-        case MassPacket_ID:   return "MassPacket";
-        case Heartbeat_ID:    return "Heartbeat";
-        case PhPacket_ID:     return "PhPacket";
-        case ServoRequest_ID: return "ServoRequest";
-        case MassRequest_ID:  return "MassRequest";
-        case LEDRequest_ID:   return "LEDRequest";
-        case PhRequest_ID:    return "PhRequest";
-        default:              return "unknown packet";
-    }
-}
-
-bool Nexus::txReady(uint8_t packetId) {
+bool Nexus::txReady(const char* what) {
     if (_linkUp.load()) return true;
-    // One aggregate counter on purpose: per-type drop counts would mean an array
-    // indexed by packet id, and taking the id here is what would make that a
-    // small change rather than a redesign. Not needed yet.
     ++_txDropped;
-    RCLCPP_DEBUG(get_logger(), "[%s] link down: %s dropped", _port.c_str(), packetName(packetId));
+    RCLCPP_DEBUG(get_logger(), "[%s] link down: %s dropped", _port.c_str(), what);
     return false;
 }
 
 void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
-    if (!txReady(ServoRequest_ID)) return;
+    if (!txReady("ServoRequest")) return;
     if (!knownId(ALL_SERVO_IDS, msg->id))
         RCLCPP_WARN_ONCE(get_logger(),
                          "[%s] ServoRequest id %u is not a ServoId in device_ids.h: forwarded, but no "
@@ -285,7 +255,7 @@ void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
 }
 
 void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
-    if (!txReady(MassRequest_ID)) return;
+    if (!txReady("MassRequest")) return;
     if (!knownId(ALL_MASS_IDS, msg->id))
         RCLCPP_WARN_ONCE(get_logger(),
                          "[%s] MassRequest id %u is not a MassId in device_ids.h: forwarded, but no "
@@ -306,7 +276,7 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
 }
 
 void Nexus::onPhReq(const custom_msg::msg::PhRequest::SharedPtr msg) {
-    if (!txReady(PhRequest_ID)) return;
+    if (!txReady("PhRequest")) return;
     ::PhRequest packet{};
     packet.change_cal = msg->change_cal ? 1 : 0;
     packet.slope      = msg->slope;
@@ -334,7 +304,7 @@ void Nexus::onLinkReady() {
     replayCalibration();
     replayPhCalibration();
     replayServoZeros();
-    sendAvionicsLed(LedModeType::On);
+    sendAvionicsLedOn();
 }
 
 void Nexus::replayCalibration() {
@@ -395,26 +365,17 @@ void Nexus::sendServoZero(uint8_t id, int32_t angle) {
     }
 }
 
-void Nexus::sendAvionicsLed(LedModeType mode) {
-    const bool on = (mode == LedModeType::On);
+void Nexus::sendAvionicsLedOn() {
     ::LEDRequest packet{};
     packet.system = idOf(LedSystemType::Avionics);
-    packet.mode   = idOf(mode);
+    packet.mode   = idOf(LedModeType::On);
     if (_proto.send(LEDRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
-        RCLCPP_INFO(get_logger(), "[%s] avionics LED set %s (system %u, mode %u)",
-                    _port.c_str(), on ? "ON" : "OFF", packet.system, packet.mode);
+        RCLCPP_INFO(get_logger(), "[%s] avionics LED set ON (system %u, mode %u)",
+                    _port.c_str(), packet.system, packet.mode);
     } else {
-        RCLCPP_WARN(get_logger(), "[%s] serial write failed (avionics LED %s)",
-                    _port.c_str(), on ? "on" : "off");
+        RCLCPP_WARN(get_logger(), "[%s] serial write failed (avionics LED on)", _port.c_str());
     }
-}
-
-void Nexus::announceShutdown() {
-    // Best-effort: a link that is already down has nobody to tell, and txReady()
-    // counts the drop rather than blocking the shutdown path.
-    if (!txReady(LEDRequest_ID)) return;
-    sendAvionicsLed(LedModeType::Off);
 }
 
 void Nexus::sendMassScale(uint8_t id, float scale) {
@@ -445,7 +406,7 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
 }
 
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
-    if (!txReady(LEDRequest_ID)) return;
+    if (!txReady("LEDRequest")) return;
     ::LEDRequest packet{};
     packet.system = msg->system;
     packet.mode = msg->mode;
