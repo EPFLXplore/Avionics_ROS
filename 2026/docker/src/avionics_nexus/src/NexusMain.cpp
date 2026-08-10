@@ -101,19 +101,18 @@ int main(int argc, char** argv) {
      * LED before we let go of the wire, so the strip stops claiming this process
      * is running. spin() has returned, so the executor thread is idle and we are
      * ON it - the same thread that owns _proto.send() during normal operation,
-     * which is what makes this safe without a lock. The ports are still open and
-     * the RX threads still running: nothing has been torn down yet.
+     * which is what makes this safe without a lock.
      *
-     * SENDS ONLY. An earlier version also did nodes.clear() here, to make the
-     * teardown explicit - which is a use-after-free: the nodes are still added to
-     * exec, and destroying one frees the notify guard condition that exec still
-     * holds a weak reference to. ~Executor then walks freed memory at the end of
-     * main. Node lifetime belongs to the end of this scope, in the order it
-     * already had; this only adds a message before it. */
+     * Before rclcpp::shutdown() so the sends can still log, and before the nodes
+     * are destroyed so the ports are still open. Each node's RX thread is still
+     * running here; it is stopped and joined by ~Nexus, and that join is also
+     * what gives these last frames time to leave the USB CDC queue. */
     RCLCPP_INFO(log, "avionics_nexus stopping: clearing the avionics LED on every master");
     for (auto& node : nodes) node->announceShutdown();
 
+    nodes.clear();   // ~Nexus: stop + join each RX thread, close each port
+
     RCLCPP_INFO(log, "avionics_nexus stopped");
     rclcpp::shutdown();
-    return 0;   // exec, then nodes: destroyed here, exactly as before this change
+    return 0;
 }
