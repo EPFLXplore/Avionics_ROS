@@ -19,7 +19,12 @@
     # PWMDriver.h, currently 0 deg). That is deliberate: an invented home angle
     # would drive real hardware somewhere on the next go_to_zero.
     #
-    # Range is 0..180; anything outside is clamped by angleToPulseUs().
+    # Range is 0..FULL TRAVEL, and full travel is PER SERVO: front_cam is a 270
+    # deg unit, the other three are 180 deg. Anything outside is clamped by
+    # angleToPulseUs() on the MCU, which takes the travel from the servo's own id
+    # (angleMaxOf() in PWMDriver.h) - so 200.0 is a real position on front_cam
+    # and the end stop on the rest. Nexus does not clamp; it forwards degrees and
+    # the firmware resolves them against the right travel.
     #
     # Which key is which id, for reading a topic that only shows a number:
     #

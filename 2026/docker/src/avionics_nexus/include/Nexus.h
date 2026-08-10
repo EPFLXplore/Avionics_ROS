@@ -127,6 +127,26 @@ class Nexus : public rclcpp::Node {
     explicit Nexus(int id);
     ~Nexus() override;
 
+    /**
+     * Last word on the wire before the process goes away: clear this master's
+     * avionics LED.
+     *
+     * Ctrl-C stops THIS process, not the MCU. The strip keeps whatever it was
+     * last told, so without this it goes on claiming avionics is up for as long
+     * as the board stays powered - which is exactly the case where an operator
+     * most needs to be told otherwise. The MCU renders Off as the resting blue,
+     * so the segment says "board alive, avionics not running" rather than going
+     * dark, which is what a dead board would look like.
+     *
+     * Called explicitly from NexusMain once spin() returns, NOT from ~Nexus.
+     * The destructor runs after rclcpp::shutdown() and is the wrong place for a
+     * send that wants a live logger and an obvious ordering against the RX
+     * thread; here the executor has merely stopped, and the wire is still ours.
+     * Best-effort by nature: if the link is already down there is nothing to
+     * tell, and txReady(LEDRequest_ID) drops it.
+     */
+    void announceShutdown();
+
   private:
     using Proto = SerialProtocol<128, PosixTransport>;
     using Frame = Proto::Frame;
@@ -144,7 +164,11 @@ class Nexus : public rclcpp::Node {
     /* TX gate: commands are broadcast to every Nexus, but only the ports with a
      * live link forward them. Down link -> count + drop silently (DEBUG), so a
      * command aimed at master 0 doesn't make masters 1..3 warn-spam. */
-    bool txReady(const char* what);
+    /** Is the link up? If not, count the drop and name it in the debug log.
+     *  Takes the wire id of the packet about to be sent - the same constant the
+     *  caller passes _proto.send() - so the log cannot name a different packet
+     *  than the one dropped. packetName() in Nexus.cpp does the id -> words. */
+    bool txReady(uint8_t packetId);
 
     /* Calibration replay: push the configured slopes to a freshly connected MCU.
      * The MCU keeps its slope in RAM, so every reset (power cycle, watchdog,
@@ -162,12 +186,17 @@ class Nexus : public rclcpp::Node {
     void replayServoZeros();
     void sendServoZero(uint8_t id, int32_t angle);
 
-    /* Announce that avionics is alive on the LED strip. The strip lives on one
+    /* Say whether avionics is alive on the LED strip. The strip lives on one
      * master, but this goes out on every port for the same reason commands do:
      * Nexus has no board profile, and a master with no strip just drops it
-     * (LedsThread is never started, so nothing consumes the queue). Re-sent on
-     * every link-up because an MCU reset takes the strip back to its boot state. */
-    void sendAvionicsLedOn();
+     * (LedsThread is never started, so nothing consumes the queue). Sent On on
+     * every link-up because an MCU reset takes the strip back to its boot state,
+     * and Off once on the way out - see announceShutdown().
+     *
+     * One function rather than two: the packet is identical but for the mode
+     * byte, and the pair must stay symmetric or the strip ends up latched to
+     * whichever half was edited last. */
+    void sendAvionicsLed(LedModeType mode);
 
     /* LedSystemType / LedModeType come from device_ids.h in the shared messages
      * submodule, so this and LEDStrip::handleMode() on the firmware compile

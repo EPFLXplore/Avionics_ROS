@@ -95,7 +95,22 @@ int main(int argc, char** argv) {
     }
 
     RCLCPP_INFO(log, "spinning %zu nodes", nodes.size());
-    exec.spin();
+    exec.spin();   // returns on SIGINT (Ctrl-C)
+
+    /* Ctrl-C stops us, not the boards. Tell every master to clear its avionics
+     * LED before we let go of the wire, so the strip stops claiming this process
+     * is running. spin() has returned, so the executor thread is idle and we are
+     * ON it - the same thread that owns _proto.send() during normal operation,
+     * which is what makes this safe without a lock.
+     *
+     * Before rclcpp::shutdown() so the sends can still log, and before the nodes
+     * are destroyed so the ports are still open. Each node's RX thread is still
+     * running here; it is stopped and joined by ~Nexus, and that join is also
+     * what gives these last frames time to leave the USB CDC queue. */
+    RCLCPP_INFO(log, "avionics_nexus stopping: clearing the avionics LED on every master");
+    for (auto& node : nodes) node->announceShutdown();
+
+    nodes.clear();   // ~Nexus: stop + join each RX thread, close each port
 
     RCLCPP_INFO(log, "avionics_nexus stopped");
     rclcpp::shutdown();

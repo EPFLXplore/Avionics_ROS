@@ -126,6 +126,10 @@ ros2 topic pub --once /EL/servo_req custom_msg/msg/ServoRequest \
   "{id: 1, angle: 90, go_to_zero: false}"
 ```
 
+Full travel depends on the servo: **`front_cam` (id 0) is 270°, ids 1-3 are
+180°**. The firmware picks the travel from the id and clamps anything past it, so
+`angle: 240` is a real position on id 0 and the end stop on the others.
+
 Back to zero:
 
 ```bash
