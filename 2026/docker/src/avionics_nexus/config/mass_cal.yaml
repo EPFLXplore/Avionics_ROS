@@ -31,6 +31,15 @@
     #
     # Values below are the firmware defaults carried over from
     # MassThread.h (MassType::slope), which both cells shared.
+    #
+    # Which key is which id, for reading a topic that only shows a number:
+    #
+    #   mass_slope_sand_rocks -> id 0
+    #   mass_slope_drill      -> id 1
+    #
+    # Those are the values carried in `id` by /EL/mass_req and /EL/mass_packet.
+    # MassIdType in device_ids.h is the authority - if this comment and that enum
+    # ever disagree, the enum is right and this list is stale.
 
     mass_slope_sand_rocks: 0.000517406
     mass_slope_drill:      0.000517406

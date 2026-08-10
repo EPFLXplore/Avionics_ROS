@@ -110,8 +110,8 @@ ros2 topic pub --once /EL/mass_req custom_msg/msg/MassRequest \
 ```
 
 This lives in RAM on the MCU and is lost on reset. For a persistent value, put
-it in `src/avionics_nexus/config/mass_cal.yaml` (`mass_slope_id_0` /
-`mass_slope_id_1`). Nexus replays those to the MCU on every link-up, so a
+it in `src/avionics_nexus/config/mass_cal.yaml` (`mass_slope_sand_rocks` /
+`mass_slope_drill`). Nexus replays those to the MCU on every link-up, so a
 power cycle or a reflash no longer costs you the calibration. That file is
 bind-mounted, so editing a slope needs a node restart, not a `colcon build`.
 The slopes compiled into `MassThread.h` are only the fallback used when nothing
@@ -132,6 +132,62 @@ Back to zero:
 ros2 topic pub --once /EL/servo_req custom_msg/msg/ServoRequest \
   "{id: 1, angle: 0, go_to_zero: true}"
 ```
+
+### LEDs
+
+**Light a segment** — here the NAV segment, solid on:
+
+```bash
+ros2 topic pub --once /EL/led_req custom_msg/msg/LEDRequest "{system: 0, mode: 1}"
+```
+
+`LEDRequest` carries no id: there is one strip in the rover, so the message says
+which segment (`system`) and what it does (`mode`).
+
+| `system` | segment | | `mode` | pattern |
+|---|---|---|---|---|
+| 0 | NAV | | 0 | off |
+| 1 | HD | | 1 | on |
+| 2 | DRILL | | 2 | blink |
+| 3 | AVIONICS | | 3 | fault |
+| | | | 4 | emergency motors (whole strip) |
+| | | | 5 | emergency shutdown (whole strip) |
+
+Modes 4 and 5 are not tied to a segment, so `system` is ignored for those.
+
+## ID mapping
+
+The `id` byte in `ServoRequest`, `MassRequest` and `MassPacket` names a **device**,
+fleet-wide. Which board serves it, and through which connector, is that board's
+own business — nothing on the wire carries it. The authoritative enums are
+`MassIdType` / `ServoIdType` in `src/custom_msg/include/device_ids.h`, which both
+the RPi and the firmware compile against.
+
+**Servos** (`/EL/servo_req`)
+
+| id | device | board |
+|---|---|---|
+| 0 | front camera | 3 |
+| 1 | drill | 0 |
+| 2 | left service module | 3 |
+| 3 | right service module | 3 |
+
+**Load cells** (`/EL/mass_req`, `/EL/mass_packet`)
+
+| id | device | board |
+|---|---|---|
+| 0 | sand & rocks | 3 |
+| 1 | drill | 0 |
+
+**No id**: the pH probe (board 3) and the LED strip (board 3) are single
+instances, so their messages carry no `id` field at all.
+
+The board column is which master currently serves the device — useful when only
+one board is powered or you are watching a single bridge node. It is not part of
+the protocol: commands go to every master and the one that owns the id acts on
+it. Which connector a device sits on is not listed at all. Both come from
+`PROFILES[]` in the firmware's `BoardProfile.h`, which is where to look when
+hardware moves — the id stays put when it does.
 
 
 

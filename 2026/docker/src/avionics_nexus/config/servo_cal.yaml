@@ -20,6 +20,17 @@
     # would drive real hardware somewhere on the next go_to_zero.
     #
     # Range is 0..180; anything outside is clamped by angleToPulseUs().
+    #
+    # Which key is which id, for reading a topic that only shows a number:
+    #
+    #   servo_zero_front_cam            -> id 0
+    #   servo_zero_drill                -> id 1
+    #   servo_zero_left_service_module  -> id 2
+    #   servo_zero_right_service_module -> id 3
+    #
+    # Those are the values carried in `id` by /EL/servo_req. ServoIdType in
+    # device_ids.h is the authority - if this comment and that enum ever
+    # disagree, the enum is right and this list is stale.
 
     servo_zero_front_cam:             0.0
     servo_zero_drill:                 0.0
