@@ -6,12 +6,20 @@
     #
     #   ph = slope * volts + offset
     #
-    # where `volts` is the raw ADS1114 differential reading. To calibrate, read
-    # PhType::volts in the debugger (pHMeterThread keeps the last raw value) in
-    # two buffer solutions of known pH, solve the line, and put it here.
+    # where `volts` is the raw ADS1114 differential reading.
     #
-    #   slope  = (pH_a - pH_b) / (V_a - V_b)      [pH per volt]
-    #   offset =  pH_a - slope * V_a              [pH at 0 V]
+    # Produced by scripts/calibrate_ph.sh, which does a 3-point fit against three
+    # buffers of known pH and prints the two lines to paste in below. No debugger
+    # needed: the script sets the calibration to the identity (slope 1, offset 0)
+    # first, which turns the MCU's conversion into a passthrough so /EL/ph_packet
+    # reports raw volts, then fits the line and sends it back. Same shape as
+    # scripts/calibrate_mass.sh.
+    #
+    # THREE points, not two. Two points always fit a line perfectly, so a worn or
+    # fouled electrode yields a flawless-looking calibration and wrong readings;
+    # the third point's residual is the only thing that catches it. The script
+    # also reports the electrode's response as a percentage of the theoretical
+    # 59.16 mV/pH, which is the number that says when to buy a new probe.
     #
     # There is no device id here or on the wire: the rover has one probe and only
     # ever will, so PhRequest names it by being the only one. The keys are read
@@ -21,11 +29,68 @@
     # calibration is worse than none, because the firmware fallback in
     # pHMeterThread.h at least has the right slope sign and magnitude.
     #
-    # The values below are that fallback, spelled out: the ideal Nernst response
-    # of the glass electrode at 25 C. The pH hat buffers the electrode at unity gain
-    # into the ADS1114 differential pair, so `volts` IS the electrode EMF: 59.16
-    # mV/pH, 0 V at pH 7. Replace with a real calibration - electrode slope
-    # degrades with age, which is exactly what calibrating against buffers measures.
+    # The pH hat buffers the electrode at unity gain into the ADS1114 differential
+    # pair, so `volts` IS the electrode EMF. The ideal glass electrode at 25 C
+    # gives 59.16 mV/pH with 0 V at pH 7, i.e. slope -16.904, offset 7.0 - that is
+    # the shape these numbers should keep, and roughly what pHMeterThread.h falls
+    # back to. Real electrodes drift off it as they age, which is exactly what
+    # calibrating against buffers measures.
+    #
+    # Fitted 2026-08-13 across 4.01 / 6.86 / 9.18:
+    #   57.41 mV/pH = 97.0% of theoretical  -> healthy (good is 90-105%)
+    #   offset 7.128631 = +7.4 mV asymmetry potential at pH 7, well within spec
+    #   worst residual 0.0056 pH - the tightest of the three fits so far
+    #
+    # Recalibrate when the response drops below ~90%, and replace the probe below
+    # 85%. Re-run the script rather than editing these by hand: the residuals it
+    # prints across three buffers are what tell you the electrode is still linear,
+    # and a hand-tweaked pair has no such evidence behind it.
+    #
+    # Third fit on this electrode, and the trend across all three is the point:
+    #
+    #   2026-08-12 early   -17.460922 / 6.891526   57.27 mV/pH  96.8%   -6.2 mV
+    #   2026-08-12 late    -17.265400 / 7.053987   57.92 mV/pH  97.9%   +3.1 mV
+    #   2026-08-13 (below) -17.417130 / 7.128631   57.41 mV/pH  97.0%   +7.4 mV
+    #
+    # Read those two columns SEPARATELY, because they have stopped agreeing. The
+    # response has essentially stopped moving - 97.9% then 97.0%, a 0.9% step
+    # that a three-point fit cannot resolve - so the gel layer is done forming.
+    # The asymmetry has not stopped: -6.2 -> +3.1 -> +7.4 mV, still walking one
+    # way.
+    #
+    # That combination is the exact signature described further down: a later fit
+    # whose SLOPE agrees while its OFFSET does not. Here it is not evidence the
+    # earlier fits were premature - it says E0 is STILL settling now, so expect
+    # the offset to keep moving and plan on refitting again rather than treating
+    # this pair as final. It is not decay either: a dying electrode loses slope,
+    # and this one has held it across three fits.
+    #
+    # That failure mode is invisible to every check in the script. The early fit
+    # was linear - residuals were small - because the electrode WAS linear; it was
+    # just on a line it would not still be on by evening. Small residuals prove
+    # linearity, never that the probe has settled. The only tell is a later fit
+    # whose slope agrees while its offset does not, and by then the first one has
+    # already been flying. Soak the probe for hours before calibrating it.
+    #
+    # PROVENANCE: fitted 2026-08-13 across 4.01 / 6.86 / 9.18:
+    #
+    #   pH 4.01   measured  +0.1792 V -> fitted 4.0075   residual -0.0025
+    #   pH 6.86   measured  +0.0151 V -> fitted 6.8656   residual +0.0056
+    #   pH 9.18   measured  -0.1176 V -> fitted 9.1769   residual -0.0031
+    #
+    # Cross-checked: the end-to-end span, 296.8 mV over 5.17 pH = 57.41 mV/pH,
+    # reproduces the fitted slope exactly.
+    #
+    # The top buffer was first recorded as 9.1 and corrected to 9.18, and that is
+    # not a cosmetic difference. The SAME three voltages fitted against 9.1 give
+    # -17.157383 / 7.095707 (58.28 mV/pH, 98.5%) with a worst residual of 0.024 -
+    # four times looser than the 0.0056 above, and a reading 0.06 pH high at
+    # pH 9. The residual is what caught it: a mislabelled buffer tilts the fitted
+    # line and surfaces as a systematic miss on the middle point, which is
+    # exactly the shape the 9.1 fit had. Three points against two parameters
+    # leaves one degree of freedom, and it turns out to be sharp enough to catch
+    # a 0.08 pH bookkeeping slip - so do not skip the residuals, and do not widen
+    # RESID_MAX to make a fit pass.
 
-    ph_slope_solution:  -16.904
-    ph_offset_solution:   7.0
+    ph_slope_solution:  -17.417130
+    ph_offset_solution:   7.128631
