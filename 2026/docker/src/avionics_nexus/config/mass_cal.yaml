@@ -41,5 +41,5 @@
     # MassIdType in device_ids.h is the authority - if this comment and that enum
     # ever disagree, the enum is right and this list is stale.
 
-    mass_slope_sand_rocks: 0.000517406
-    mass_slope_drill:      0.000517406
+    mass_slope_sand_rocks: 0.0005106881
+    mass_slope_drill:      0.0005106881
