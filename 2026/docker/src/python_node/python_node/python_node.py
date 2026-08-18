@@ -8,7 +8,7 @@ import struct
 
 from custom_msg.msg import BMS
 
-usb_port_bms = '/dev/ttyUSB0'
+usb_port_bms = '/dev/ttyESP32_Avionics'
 
 
 class PythonPublisher(Node):
