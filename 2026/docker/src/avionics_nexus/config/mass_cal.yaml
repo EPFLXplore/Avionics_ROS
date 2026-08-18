@@ -29,13 +29,15 @@
     # ~/dev_ws/src), so editing a slope needs a node restart - not a colcon
     # build.
     #
-    # sand_rocks comes from a calibrate_mass.sh run; drill is still the old
-    # shared value and wants a run of its own. The two are now 2.8x apart, so
-    # they are no longer interchangeable: drill's number is stale, not a second
-    # opinion on the same cell. MassThread.h (MassType::slope) is a SINGLE
-    # fallback for every cell, so it cannot equal both: it tracks the most
-    # recently calibrated one (sand_rocks), which means a lost link leaves the
-    # drill cell reading ~2.8x heavy until the replay lands.
+    # Both keys now come from their own calibrate_mass.sh run, and they are
+    # ~2.8x apart (drill is the LARGER). They are not interchangeable and never
+    # were: each belongs to one physical cell.
+    #
+    # MassThread.h (MassType::slope) is a SINGLE fallback for every cell, so it
+    # cannot match both. It holds the sand_rocks slope, so a link lost before
+    # the replay lands leaves the DRILL cell reading ~2.8x LIGHT. Whichever cell
+    # the fallback does not match is the one that goes wrong on a comms failure;
+    # moving it to drill's value only moves the error onto sand_rocks.
     #
     # Which key is which id, for reading a topic that only shows a number:
     #
@@ -46,5 +48,5 @@
     # MassIdType in device_ids.h is the authority - if this comment and that enum
     # ever disagree, the enum is right and this list is stale.
 
-    mass_slope_sand_rocks: 0.0014233825
-    mass_slope_drill:      0.0005106881
+    mass_slope_sand_rocks: 0.0005157476
+    mass_slope_drill:      0.0014269202
