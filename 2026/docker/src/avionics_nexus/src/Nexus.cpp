@@ -301,6 +301,9 @@ void Nexus::onLinkReady() {
     if (_rxFrames.load() == _framesAtOpen.load()) return;
 
     _linkReadyPending = false;
+    // A reconnect means the MCU rebooted and dropped its LED state: forget what
+    // we last sent so the next request is forwarded even if it repeats it.
+    _lastLedValid = false;
     replayCalibration();
     replayPhCalibration();
     replayServoZeros();
@@ -371,6 +374,9 @@ void Nexus::sendAvionicsLedOn() {
     packet.mode   = idOf(LedModeType::On);
     if (_proto.send(LEDRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
+        _lastLedValid  = true;
+        _lastLedSystem = packet.system;
+        _lastLedMode   = packet.mode;
         RCLCPP_INFO(get_logger(), "[%s] avionics LED set ON (system %u, mode %u)",
                     _port.c_str(), packet.system, packet.mode);
     } else {
@@ -407,13 +413,27 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
 
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
     if (!txReady("LEDRequest")) return;
+
+    /* Edge-triggered: the LED state lives in the MCU, so re-sending what it
+     * already holds only burns link bandwidth that the sensor stream needs. */
+    if (_lastLedValid && msg->system == _lastLedSystem && msg->mode == _lastLedMode) {
+        RCLCPP_DEBUG(get_logger(), "[%s] LEDRequest unchanged (system %u, mode %u): not forwarded",
+                     _port.c_str(), msg->system, msg->mode);
+        return;
+    }
+
     ::LEDRequest packet{};
     packet.system = msg->system;
     packet.mode = msg->mode;
     if (_proto.send(LEDRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
+        _lastLedValid  = true;
+        _lastLedSystem = packet.system;
+        _lastLedMode   = packet.mode;
         RCLCPP_INFO_ONCE(get_logger(), "[%s] first LEDRequest forwarded to the MCU", _port.c_str());
     } else {
+        /* Cache stays as-is on a failed write: nothing reached the MCU, so the
+         * next identical request must still be allowed through. */
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (LEDRequest)", _port.c_str());
     }
 }

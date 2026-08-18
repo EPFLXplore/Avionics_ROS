@@ -245,5 +245,15 @@ class Nexus : public rclcpp::Node {
     rclcpp::TimerBase::SharedPtr _calTimer;
     std::atomic<bool> _linkReadyPending{false}; // set by rxLoop on link-up, cleared once the executor has sent
     std::atomic<unsigned> _framesAtOpen{0}; // _rxFrames snapshot at link-up: readiness baseline
+
+    /* LED de-duplication. The GUI republishes /EL/led_req at its own rate, so the
+     * same (system, mode) pair would otherwise hit the wire dozens of times a
+     * second for a state the MCU already holds. Only a *change* is forwarded.
+     * Executor-thread only (onLedReq / onLinkReady), so no atomics needed.
+     * Invalidated on every link-up: a reset MCU has lost the state, so the next
+     * request must go through even if it repeats the last one we sent. */
+    bool    _lastLedValid{false};
+    uint8_t _lastLedSystem{0};
+    uint8_t _lastLedMode{0};
 };
 
