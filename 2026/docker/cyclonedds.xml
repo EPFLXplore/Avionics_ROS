@@ -2,7 +2,21 @@
 <CycloneDDS xmlns="https://cdds.io/config">
   <Domain Id="0">
     <General>
-      <NetworkInterfaceAddress>eth0</NetworkInterfaceAddress>
+      <!--
+        Which interface Cyclone binds to, per machine.
+
+        The RP must be pinned to eth0: it is the direct link to the rest of the
+        rover, and left to itself Cyclone can just as well pick wifi. A dev
+        laptop has no eth0 at all (the same link shows up as enx<mac>), and a
+        name that does not resolve is FATAL - "eth0: does not match an available
+        interface" and every node dies in rmw_create_node.
+
+        So the name comes from the environment, with "auto" as the fallback:
+        run.sh and erc_run_avionics.sh pass CYCLONE_IFACE=eth0 where an eth0
+        exists and leave it unset otherwise. Export CYCLONE_IFACE yourself to
+        override on either machine.
+      -->
+      <NetworkInterfaceAddress>${CYCLONE_IFACE:-auto}</NetworkInterfaceAddress>
       <AllowMulticast>spdp</AllowMulticast>
     </General>
   </Domain>

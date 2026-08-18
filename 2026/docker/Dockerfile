@@ -59,7 +59,18 @@ RUN apt-get update && apt-get install -y \
       python3-pip \
       python3-rosdep \
       python3-colcon-common-extensions \
+      ros-humble-rmw-cyclonedds-cpp \
       && ACCEPT_EULA=Y apt-get install -y ubuntu-restricted-extras
+
+# --------------------------------------------------------
+# Middleware: Cyclone, to match the rest of the rover.
+# ros:humble defaults to rmw_fastrtps_cpp, and rmw_cyclonedds_cpp was not even
+# installed - so CYCLONEDDS_URI in run.sh was silently doing nothing and every
+# node here spoke Fast DDS at peers speaking Cyclone. Selecting it here rather
+# than only via -e means an `attach.sh` shell and any manual `ros2 run` get the
+# same middleware as the launch scripts.
+# --------------------------------------------------------
+ENV RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 # ARM toolchain included for x86 builds; harmless on ARM
 RUN apt-get install -y --no-install-recommends \

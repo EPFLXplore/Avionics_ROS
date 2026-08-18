@@ -5,6 +5,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CYCLONE_XML="${CYCLONE_XML:-$SCRIPT_DIR/cyclonedds.xml}"
 CYCLONE_XML_CONTAINER="/etc/cyclonedds/cyclonedds.xml"
 
+# Cyclone binds to one interface (see cyclonedds.xml). The RP has eth0 and must
+# be pinned to it, or Cyclone may pick wifi over the direct link; a dev laptop
+# has no eth0, where a hard pin would be fatal, so it falls back to "auto".
+# Export CYCLONE_IFACE to override on either machine.
+CYCLONE_IFACE="${CYCLONE_IFACE:-$(ip -o link show eth0 >/dev/null 2>&1 && echo eth0 || echo auto)}"
+
 CONTAINER_NAME=${CONTAINER_NAME:-elec_humble_local}
 IMAGE_NAME=${IMAGE_NAME:-elec:humble-local}
 USERNAME=xplore
@@ -63,6 +69,8 @@ docker run -it \
     --privileged \
     --net=host \
     -e ROS_DOMAIN_ID=0 \
+    -e RMW_IMPLEMENTATION=rmw_cyclonedds_cpp \
+    -e CYCLONE_IFACE="$CYCLONE_IFACE" \
     -e CYCLONEDDS_URI="file://${CYCLONE_XML_CONTAINER}" \
     -e DISPLAY=unix$DISPLAY \
     -e QT_X11_NO_MITSHM=1 \
