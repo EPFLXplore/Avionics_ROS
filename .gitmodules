@@ -1,4 +1,4 @@
 [submodule "2026/docker/src/custom_msg"]
 	path = 2026/docker/src/custom_msg
 	url = git@github.com:EPFLXplore/ERC_SE_CustomMessages.git
-	branch = AV2026
+	branch = MVP_June_HDS_and_NAV

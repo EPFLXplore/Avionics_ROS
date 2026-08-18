@@ -51,10 +51,14 @@ echo ""
 # ----------------------------------------
 # Run container
 # ----------------------------------------
+# -w below puts us in dev_ws, so this relative path resolves. The Dockerfile's
+# final WORKDIR is /home/xplore, not the workspace, and `bash -c` never reads
+# .bashrc - so without -w this line is where the container dies.
 DOCKER_COMMAND="source install/setup.bash && { ros2 launch avionics_nexus bridge.launch.py & exec ros2 run python_node python_node; }"
 
 docker run -it \
     --name "$CONTAINER_NAME" \
+    -w "/home/$USERNAME/dev_ws" \
     --rm \
     --privileged \
     --net=host \
