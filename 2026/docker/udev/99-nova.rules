@@ -23,3 +23,8 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", ATTRS{seria
 SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="ttyNova_%s{serial}", GROUP="dialout", MODE="0660"
 
 LABEL="nova_end"
+
+# BMS serial link (Prolific PL2303 USB-serial adapter) -> /dev/ttyBMS.
+# The PL2303 reports no serial number, so this matches on VID:PID alone: it
+# assumes exactly one such adapter is plugged in.
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"

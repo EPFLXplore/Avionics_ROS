@@ -92,5 +92,20 @@
     # a 0.08 pH bookkeeping slip - so do not skip the residuals, and do not widen
     # RESID_MAX to make a fit pass.
 
-    ph_slope_solution:  -17.417130
-    ph_offset_solution:   7.128631
+    # --- DFRobot probe, fitted 2026-08-20 --------------------------------
+    # These belong to the DFRobot electrode, NOT the probe the three fits above
+    # were taken on. Swapping probes invalidates a calibration completely, so do
+    # not compare these against that history - different electrode, different
+    # asymmetry potential, different slope.
+    #
+    #   53.37 mV/pH = 90.2% of theoretical
+    #   -82.6 mV asymmetry potential at pH 7
+    #
+    # Flagged for re-check: 90.2% clears the script's "good" band by 0.2%, and
+    # -82.6 mV is well outside the +-30 mV a glass electrode normally holds.
+    # A leak measured directly on 2026-08-20 (14.7 GOhm open-circuit, falling to
+    # 2-4 GOhm) produces exactly this shape - slope attenuated, offset dragged
+    # negative - so refit once the BNC is properly dry and see whether both move
+    # back. If they do, these numbers were measuring the connector.
+    ph_slope_solution:  -18.736416
+    ph_offset_solution:   5.452840
