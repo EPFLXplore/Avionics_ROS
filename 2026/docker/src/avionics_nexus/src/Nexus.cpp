@@ -116,9 +116,10 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
                         _port.c_str(), delta);
         else
             RCLCPP_INFO(get_logger(),
-                        "[%s] link up: +%u bytes/15s (rx %u frames, tx %u, crc_err %u, bad_len %u, reconnects %u)",
+                        "[%s] link up: +%u bytes/15s (rx %u frames, tx %u, crc_err %u, bad_len %u, "
+                        "truncated %u, reconnects %u)",
                         _port.c_str(), delta, rf, tf,
-                        _proto.crcErrors(), _proto.badLen(), _reconnects.load());
+                        _proto.crcErrors(), _proto.badLen(), _proto.truncated(), _reconnects.load());
     });
 
     _rxThread = std::thread(&Nexus::rxLoop, this);
@@ -156,7 +157,13 @@ void Nexus::rxLoop() {
                 last_rx = std::chrono::steady_clock::now();
                 RCLCPP_INFO_ONCE(get_logger(), "[%s] first bytes received from the MCU", _port.c_str());
                 _proto.parse(chunk, n, [this](const Frame& f) { onFrame(f); });
-            } else if (std::chrono::steady_clock::now() - last_rx > STALL_TIMEOUT) {
+            } else if (_proto.idle(), std::chrono::steady_clock::now() - last_rx > STALL_TIMEOUT) {
+                // idle() first, unconditionally: a poll that returned nothing is
+                // how the parser learns a half-received frame is never going to
+                // finish. Without it the FSM stays parked mid-payload and eats
+                // the next frame's header when the line comes back. Comma
+                // operator so the stall test below is untouched.
+                //
                 // Self-heal. The fd is still valid and read() never errored, but
                 // the MCU stopped talking: a hung TX ring on the firmware side,
                 // a USB suspend, or a re-enumeration onto a different ttyACM

@@ -112,9 +112,39 @@ class SerialProtocol {
      */
     template <class OnFrame>
     void parse(const uint8_t* data, uint16_t len, OnFrame&& onFrame) {
+        if (len) _idlePolls = 0; // bytes are flowing: the frame is still arriving
         for (uint16_t i = 0; i < len; ++i) {
             if (processByte(data[i])) onFrame(_frame); // emit each complete frame
         }
+    }
+
+    /****************************** Idle ******************************
+     * @brief Tell the parser a poll produced NO bytes. Call it every time.
+     *
+     * This is the reset the state machine was missing. Every other exit from a
+     * half-built frame is driven by a byte that arrives - a bad length, a failed
+     * CRC. Nothing handled the frame whose remaining bytes never arrive at all,
+     * which is exactly what a full RX ring produces: the tail of the frame is
+     * dropped by the ISR, the FSM is left parked in Payload waiting for bytes
+     * that no longer exist, and it then eats the NEXT frame's header as payload.
+     * That frame dies too, on CRC - so ONE ring overflow silently costs at least
+     * two commands, and the second one looks for all the world like a command
+     * that was never sent.
+     *
+     * The line going quiet mid-frame is unambiguous evidence of that: on USB-FS
+     * a command frame (<= 18 bytes) always fits in ONE 64-byte packet, so its
+     * bytes are never legitimately separated by an idle poll. IDLE_ABORT_POLLS
+     * of margin covers a host that splits one anyway.
+     *
+     * Counted in truncated(), NOT in badLen()/crcErrors(): those mean the bytes
+     * arrived corrupted, this means they never arrived.
+     */
+    void idle() {
+        if (_state == StateType::Stx1) { _idlePolls = 0; return; } // not mid-frame
+        if (++_idlePolls < IDLE_ABORT_POLLS) return;
+        ++_truncated;
+        reset();
+        _idlePolls = 0;
     }
 
     /** This feeds a single byte into the protocol state machine. It returns true
@@ -139,7 +169,14 @@ class SerialProtocol {
 
             /**** 0x5A confirmation ****/
             case StateType::Stx2:
-                _state = (b == STX2) ? StateType::LenLo : StateType::Stx1;
+                if (b == STX2)      _state = StateType::LenLo;
+                else if (b == STX1) _state = StateType::Stx2; // stay: THIS byte is
+                    // the marker now. Dropping to Stx1 here lost a real frame
+                    // whenever the byte before its header happened to be 0xA5
+                    // (or a truncated frame left one behind): A5 A5 5A used to
+                    // resync on the FIRST A5, reject the second, and then hunt
+                    // past the 5A - one whole frame missed per stray A5.
+                else                _state = StateType::Stx1;
                 break;
 
             /**** length low byte ****/
@@ -201,6 +238,10 @@ class SerialProtocol {
      * Both mean line noise / desync that the self-syncing FSM recovered from. */
     uint32_t crcErrors() const { return _crcErrors; }
     uint32_t badLen()    const { return _badLen; }
+    /** Frames abandoned half-received because the line went quiet - see idle().
+     *  A nonzero value here means bytes are being LOST upstream of the parser
+     *  (RX ring overflow), not corrupted on the wire. */
+    uint32_t truncated() const { return _truncated; }
 
   private:
     enum class StateType : uint8_t { Stx1, Stx2, LenLo, LenHi, Id, Payload, CrcLo, CrcHi };
@@ -208,6 +249,13 @@ class SerialProtocol {
     static constexpr uint8_t STX1 = 0xA5;                       // start token 1
     static constexpr uint8_t STX2 = 0x5A;                       // start token 2
     static constexpr uint16_t MaxFrame = MaxPayload + 7;         // STX2 + len2 + id1 + payload + crc2
+    /* Consecutive empty polls before a half-received frame is abandoned. In
+     * POLLS, not milliseconds - the parser has no clock, and its two callers
+     * poll at very different rates: the MCU's SerialThread every 1 ms (so this
+     * is ~5 ms), Nexus's rxLoop up to 100 ms per poll() (so ~500 ms). Both are
+     * far longer than any gap inside a single-packet frame and far shorter than
+     * the 3 s stall detector that tears the link down. */
+    static constexpr uint8_t IDLE_ABORT_POLLS = 5;
 
     Transport& _io;            // wire abstraction (compile-time policy)
     Frame _frame{};            // rolling RX buffer
@@ -217,6 +265,8 @@ class SerialProtocol {
     uint16_t _crcRead = 0;     // CRC from wire
     uint32_t _crcErrors = 0;   // frames dropped on CRC mismatch (diagnostics)
     uint32_t _badLen = 0;      // frames dropped on impossible length (diagnostics)
+    uint32_t _truncated = 0;   // frames abandoned half-received (see idle())
+    uint8_t  _idlePolls = 0;   // consecutive empty polls while mid-frame
 
     /* Reset parser to STX hunt */
     void reset() {
