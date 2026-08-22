@@ -326,7 +326,7 @@ void Nexus::onLinkReady() {
     replayCalibration();
     replayPhCalibration();
     replayServoZeros();
-    sendAvionicsLedOn();
+    sendInitialLedState();
 }
 
 void Nexus::replayCalibration() {
@@ -387,32 +387,51 @@ void Nexus::sendServoZero(uint8_t id, int32_t angle) {
     }
 }
 
-void Nexus::sendAvionicsLedOn() {
+bool Nexus::sendLed(uint8_t system, uint8_t mode, const char* what) {
+    ::LEDRequest packet{};
+    packet.system = system;
+    packet.mode   = mode;
+    if (!_proto.send(LEDRequest_ID, &packet, sizeof packet)) {
+        /* Cache stays as-is on a failed write, same rule as onLedReq: nothing
+         * reached the MCU, so a later request for this state must still go out. */
+        RCLCPP_WARN(get_logger(), "[%s] serial write failed (%s)", _port.c_str(), what);
+        return false;
+    }
+    ++_txFrames;
+    _lastLedValid  = true;
+    _lastLedSystem = packet.system;
+    _lastLedMode   = packet.mode;
+    RCLCPP_INFO(get_logger(), "[%s] %s forwarded to the MCU: system %u mode %u",
+                _port.c_str(), what, packet.system, packet.mode);
+    return true;
+}
+
+void Nexus::sendInitialLedState() {
     /* The latch stops us too, not just the topic. This runs on every link-up, so
      * without the guard a USB re-enumeration would quietly drive the avionics
      * segment back ON after an emergency shutdown - the exact repaint the latch
      * exists to prevent, arriving from inside the node instead of over the wire. */
     if (_ledLatched) {
         RCLCPP_WARN(get_logger(),
-                    "[%s] not setting the avionics LED on after link-up: emergency shutdown is "
+                    "[%s] not setting the initial LED state after link-up: emergency shutdown is "
                     "latched",
                     _port.c_str());
         return;
     }
 
-    ::LEDRequest packet{};
-    packet.system = idOf(LedSystemType::Avionics);
-    packet.mode   = idOf(LedModeType::On);
-    if (_proto.send(LEDRequest_ID, &packet, sizeof packet)) {
-        ++_txFrames;
-        _lastLedValid  = true;
-        _lastLedSystem = packet.system;
-        _lastLedMode   = packet.mode;
-        RCLCPP_INFO(get_logger(), "[%s] avionics LED set ON (system %u, mode %u)",
-                    _port.c_str(), packet.system, packet.mode);
-    } else {
-        RCLCPP_WARN(get_logger(), "[%s] serial write failed (avionics LED on)", _port.c_str());
+    /* Blank every other subsystem before announcing avionics. A reset MCU boots
+     * the strip into LedsThread's start state and only the segments we name get
+     * overwritten, so without this the strip after a reconnect is our avionics
+     * segment sitting next to whatever the boot state left in the others.
+     * Walking to Count covers any subsystem added to the enum later. */
+    for (uint8_t system = 0; system < idOf(LedSystemType::Count); ++system) {
+        if (system == idOf(LedSystemType::Avionics)) continue;
+        sendLed(system, idOf(LedModeType::Off), "subsystem LED off");
     }
+
+    /* Avionics last, so it is what the de-duplication cache ends up holding and
+     * the "alive" segment is the final thing written to the strip. */
+    sendLed(idOf(LedSystemType::Avionics), idOf(LedModeType::On), "avionics LED on");
 }
 
 void Nexus::sendMassScale(uint8_t id, float scale) {

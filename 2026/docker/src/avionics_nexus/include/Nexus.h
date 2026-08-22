@@ -162,12 +162,17 @@ class Nexus : public rclcpp::Node {
     void replayServoZeros();
     void sendServoZero(uint8_t id, int32_t angle);
 
-    /* Announce that avionics is alive on the LED strip. The strip lives on one
-     * master, but this goes out on every port for the same reason commands do:
-     * Nexus has no board profile, and a master with no strip just drops it
-     * (LedsThread is never started, so nothing consumes the queue). Re-sent on
-     * every link-up because an MCU reset takes the strip back to its boot state. */
-    void sendAvionicsLedOn();
+    /* Put the strip into a known state: avionics on to announce that avionics is
+     * alive, every other subsystem off. This goes out on every port for the same
+     * reason commands do: Nexus has no board profile, and a master with no strip
+     * just drops it (LedsThread is never started, so nothing consumes the queue).
+     * Re-sent on every link-up because an MCU reset takes the strip back to its
+     * boot state. */
+    void sendInitialLedState();
+
+    /* One LED frame out, with the de-duplication cache and the log line that go
+     * with it. `what` names the caller for the log/warning. */
+    bool sendLed(uint8_t system, uint8_t mode, const char* what);
 
     /* LedSystemType / LedModeType come from device_ids.h in the shared messages
      * submodule, so this and LEDStrip::handleMode() on the firmware compile
