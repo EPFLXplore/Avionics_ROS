@@ -27,36 +27,7 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
 
     RCLCPP_INFO(get_logger(), "Nexus[%d] starting on %s (connects + auto-reconnects)", id, _port.c_str());
 
-    /* One QoS for every topic on this node.
-     *
-     * DEPTH 10 is what 2025 had - NexusSubscriber.cpp used the integer form,
-     * `create_subscription<T>("/EL/servo_req", 10, cb)`, which rclcpp expands to
-     * KeepLast(10). The 2026 port took it to KeepLast(1). All four Nexus nodes
-     * share ONE SingleThreadedExecutor, so at depth 1 a second message arriving
-     * before the executor drains the first is discarded - and the calibration
-     * replay sends several commands back to back on every link-up, straight into
-     * that window. History is not an RxO policy, so raising it is purely local
-     * and cannot affect matching with anyone.
-     *
-     * RELIABILITY stays best_effort, and NOT because it is right for commands.
-     * Telemetry is sampled state and best_effort suits it; a command is a
-     * one-shot that nothing re-sends, and over WiFi to a base station a dropped
-     * datagram with no retransmit looks exactly like "the command was never
-     * sent". 2025 was RELIABLE here.
-     *
-     * It cannot be fixed from this side alone. Reliability IS an RxO policy,
-     * offered >= requested, so a best_effort PUBLISHER will not match a reliable
-     * SUBSCRIPTION - the topic goes dead rather than flaky. Both ends have to
-     * move together. Do not "fix" this line on its own; check the publisher with
-     * `ros2 topic info <topic> --verbose` first.
-     *
-     * DURABILITY stays volatile deliberately. transient_local would fix a
-     * `ros2 topic pub --once` (lost because the publisher exits before discovery
-     * completes - pass `-w 1` instead), but a transient_local SUBSCRIPTION also
-     * refuses to match a volatile publisher, and a reconnecting Nexus would then
-     * be handed the last command it never saw - which for a servo means moving
-     * on subscribe. */
-    auto qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort();
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
     /* Telemetry: MCU -> RP */
     _massPub = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", qos);
@@ -65,43 +36,15 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
     RCLCPP_INFO(get_logger(), "publishers ready: /EL/mass_packet, /EL/ph_packet, /EL/heartbeat");
 
 
-    /* Commands: RP -> MCU
-     *
-     * Optionally sourced from the qos_bridge instead of the raw topics. The
-     * bridge republishes each command on <topic>_latched with TRANSIENT_LOCAL,
-     * so a Nexus that matches late - a restart, a redeploy, a reconnect - is
-     * handed the last command instead of never seeing it.
-     *
-     *   ros2 run avionics_nexus avionics_nexus --ros-args -p command_suffix:=_latched
-     *
-     * A PARAMETER rather than a hard switch, for two reasons. Subscribing to both
-     * the raw and the latched topic would deliver every command TWICE, and a
-     * doubled tare is worse than a lost one. And hard-wiring the latched topic
-     * would make the bridge a single point of failure for all command traffic -
-     * if it is not running, nothing reaches the MCU at all. Default is empty, so
-     * out of the box this behaves exactly as before and the bridge is opt-in.
-     *
-     * The QoS has to move with the topic: transient_local is RxO, so a
-     * transient_local subscription only matches a transient_local publisher (the
-     * bridge), and would refuse the volatile GUI. */
-    const std::string cmdSuffix = declare_parameter<std::string>("command_suffix", "");
-    const auto cmdQos = cmdSuffix.empty()
-        ? qos
-        : rclcpp::QoS(rclcpp::KeepLast(10)).reliable().transient_local();
-    if (!cmdSuffix.empty())
-        RCLCPP_WARN(get_logger(),
-                    "[%s] commands sourced from '*%s' (qos_bridge). A latched SERVO command "
-                    "moves the servo on subscribe - check LATCH_SERVO in QosBridge.cpp",
-                    _port.c_str(), cmdSuffix.c_str());
-
+    /* Commands: RP -> MCU */
     _servoSub = create_subscription<custom_msg::msg::ServoRequest>(
-        "/EL/servo_req" + cmdSuffix, cmdQos, std::bind(&Nexus::onServoReq, this, _1));
+        "/EL/servo_req", qos, std::bind(&Nexus::onServoReq, this, _1));
     _massSub = create_subscription<custom_msg::msg::MassRequest>(
-        "/EL/mass_req" + cmdSuffix, cmdQos, std::bind(&Nexus::onMassReq, this, _1));
+        "/EL/mass_req", qos, std::bind(&Nexus::onMassReq, this, _1));
     _ledSub = create_subscription<custom_msg::msg::LEDRequest>(
-        "/EL/led_req" + cmdSuffix, cmdQos, std::bind(&Nexus::onLedReq, this, _1));
+        "/EL/led_req", qos, std::bind(&Nexus::onLedReq, this, _1));
     _phSub = create_subscription<custom_msg::msg::PhRequest>(
-        "/EL/ph_req" + cmdSuffix, cmdQos, std::bind(&Nexus::onPhReq, this, _1));
+        "/EL/ph_req", qos, std::bind(&Nexus::onPhReq, this, _1));
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req, /EL/ph_req");
 
     /* Calibration: one slope per load cell DEVICE, replayed to the MCU on every

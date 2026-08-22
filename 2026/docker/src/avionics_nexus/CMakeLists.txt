@@ -29,14 +29,7 @@ ament_target_dependencies(avionics_nexus
   rclcpp
   custom_msg)
 
-# Latches the last command per topic for a late-joining Nexus (see QosBridge.cpp).
-add_executable(qos_bridge src/QosBridge.cpp)
-target_include_directories(qos_bridge PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../custom_msg/include)
-ament_target_dependencies(qos_bridge rclcpp custom_msg)
-
-install(TARGETS avionics_nexus qos_bridge
+install(TARGETS avionics_nexus
   DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY launch
