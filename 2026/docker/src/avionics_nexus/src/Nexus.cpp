@@ -3,8 +3,11 @@
  * @brief Implementation of the RP wire-owner (see Nexus.h).
  *
  * Logging policy: report everything that proves the link is alive (port open,
- * pubs/subs ready, the FIRST frame of each kind, the FIRST command forwarded,
- * write failures) plus a periodic count pulse, but never log per-packet data.
+ * pubs/subs ready, the FIRST frame of each kind, EVERY command forwarded to the
+ * MCU with its payload, write failures) plus a periodic count pulse, but never
+ * log per-packet telemetry data. Commands are operator-paced and rare, so one
+ * line each is affordable and is what you read back when a request did not take
+ * effect; telemetry is not, which is why it stays first-of-kind only.
  * First-of-kind lines use *_ONCE; the link-down warning fires once per
  * disconnect (down-transition), and the 15s timer reports ongoing state.
  */
@@ -254,8 +257,11 @@ void Nexus::onServoReq(const custom_msg::msg::ServoRequest::SharedPtr msg) {
     packet.zero        = msg->zero;
     if (_proto.send(ServoRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
-        RCLCPP_INFO_ONCE(get_logger(), "[%s] first ServoRequest forwarded to the MCU (id %u)",
-                         _port.c_str(), packet.id);
+        RCLCPP_INFO(get_logger(),
+                    "[%s] ServoRequest forwarded to the MCU: id %u angle %ld go_to_zero %u "
+                    "change_zero %u zero %ld",
+                    _port.c_str(), packet.id, static_cast<long>(packet.angle), packet.go_to_zero,
+                    packet.change_zero, static_cast<long>(packet.zero));
     } else {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (ServoRequest)", _port.c_str());
     }
@@ -275,8 +281,11 @@ void Nexus::onMassReq(const custom_msg::msg::MassRequest::SharedPtr msg) {
     packet.scale = msg->scale;
     if (_proto.send(MassRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
-        RCLCPP_INFO_ONCE(get_logger(), "[%s] first MassRequest forwarded to the MCU (mass id %u)",
-                         _port.c_str(), packet.id);
+        RCLCPP_INFO(get_logger(),
+                    "[%s] MassRequest forwarded to the MCU: mass id %u tare %u change_scale %u "
+                    "scale %.10f",
+                    _port.c_str(), packet.id, packet.tare, packet.change_scale,
+                    static_cast<double>(packet.scale));
     } else {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (MassRequest)", _port.c_str());
     }
@@ -290,7 +299,10 @@ void Nexus::onPhReq(const custom_msg::msg::PhRequest::SharedPtr msg) {
     packet.offset     = msg->offset;
     if (_proto.send(PhRequest_ID, &packet, sizeof packet)) {
         ++_txFrames;
-        RCLCPP_INFO_ONCE(get_logger(), "[%s] first PhRequest forwarded to the MCU", _port.c_str());
+        RCLCPP_INFO(get_logger(),
+                    "[%s] PhRequest forwarded to the MCU: change_cal %u slope %.6f offset %.6f",
+                    _port.c_str(), packet.change_cal, static_cast<double>(packet.slope),
+                    static_cast<double>(packet.offset));
     } else {
         RCLCPP_WARN(get_logger(), "[%s] serial write failed (PhRequest)", _port.c_str());
     }
@@ -376,6 +388,18 @@ void Nexus::sendServoZero(uint8_t id, int32_t angle) {
 }
 
 void Nexus::sendAvionicsLedOn() {
+    /* The latch stops us too, not just the topic. This runs on every link-up, so
+     * without the guard a USB re-enumeration would quietly drive the avionics
+     * segment back ON after an emergency shutdown - the exact repaint the latch
+     * exists to prevent, arriving from inside the node instead of over the wire. */
+    if (_ledLatched) {
+        RCLCPP_WARN(get_logger(),
+                    "[%s] not setting the avionics LED on after link-up: emergency shutdown is "
+                    "latched",
+                    _port.c_str());
+        return;
+    }
+
     ::LEDRequest packet{};
     packet.system = idOf(LedSystemType::Avionics);
     packet.mode   = idOf(LedModeType::On);
@@ -419,7 +443,23 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
 }
 
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
+    /* Latched: an emergency shutdown has been requested, so we are done taking
+     * LED orders. Whatever is still publishing /EL/led_req - a GUI republishing
+     * its slider state, an autonomy node that never noticed - would otherwise
+     * paint straight over the one pattern the crew needs to see. Throttled
+     * because that republishing is exactly what gets refused here, and a line
+     * per refusal would bury the log. */
+    if (_ledLatched) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "[%s] LEDRequest (system %u, mode %u) ignored: emergency shutdown is "
+                             "latched, restart this node to accept LED commands again",
+                             _port.c_str(), msg->system, msg->mode);
+        return;
+    }
+
     if (!txReady("LEDRequest")) return;
+
+    const bool emergency = msg->mode == idOf(LedModeType::EmergencyShutdown);
 
     /* Edge-triggered: the LED state lives in the MCU, so re-sending what it
      * already holds only burns link bandwidth that the sensor stream needs. */
@@ -437,7 +477,18 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         _lastLedValid  = true;
         _lastLedSystem = packet.system;
         _lastLedMode   = packet.mode;
-        RCLCPP_INFO_ONCE(get_logger(), "[%s] first LEDRequest forwarded to the MCU", _port.c_str());
+        RCLCPP_INFO(get_logger(), "[%s] LEDRequest forwarded to the MCU: system %u mode %u",
+                    _port.c_str(), packet.system, packet.mode);
+        /* Latch only after the frame is on the wire: if the write failed the MCU
+         * never got the shutdown, and refusing every later request would leave us
+         * silent about a strip that is still showing the old pattern. */
+        if (emergency) {
+            _ledLatched = true;
+            RCLCPP_WARN(get_logger(),
+                        "[%s] emergency shutdown forwarded: LED commands are now latched off and "
+                        "every further LEDRequest will be ignored until this node restarts",
+                        _port.c_str());
+        }
     } else {
         /* Cache stays as-is on a failed write: nothing reached the MCU, so the
          * next identical request must still be allowed through. */

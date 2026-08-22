@@ -255,5 +255,13 @@ class Nexus : public rclcpp::Node {
     bool    _lastLedValid{false};
     uint8_t _lastLedSystem{0};
     uint8_t _lastLedMode{0};
+
+    /* Emergency-shutdown latch. Set once an EmergencyShutdown mode has been
+     * forwarded; from then on every LEDRequest is refused. Deliberately has no
+     * clear path - not on reconnect, not by another request - because the whole
+     * point is that nothing can paint over the pattern the crew is looking at.
+     * Restart the node to accept LED commands again. Executor-thread only, same
+     * as the de-duplication state above. */
+    bool _ledLatched{false};
 };
 
