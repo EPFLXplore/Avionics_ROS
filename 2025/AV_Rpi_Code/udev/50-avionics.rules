@@ -1,0 +1,4 @@
+SUBSYSTEM=="tty", KERNELS=="2-2:1.0", SYMLINK+="ttyBMS"
+SUBSYSTEM=="tty", KERNELS=="4-2:1.0", SYMLINK+="ttyESP32_Avionics"
+SUBSYSTEM=="tty", KERNELS=="4-1:1.0", SYMLINK+="ttyESP32_LED"
+SUBSYSTEM=="tty", KERNELS=="2-1:1.0", SYMLINK+="tty4in1"

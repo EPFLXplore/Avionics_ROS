@@ -24,7 +24,49 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0483", ATTRS{idProduct}=="5740", SYMLINK+="t
 
 LABEL="nova_end"
 
-# BMS serial link (Prolific PL2303 USB-serial adapter) -> /dev/ttyBMS.
-# The PL2303 reports no serial number, so this matches on VID:PID alone: it
-# assumes exactly one such adapter is plugged in.
+# ---------------------------------------------------------------------------
+# BMS serial link -> /dev/ttyBMS
+#
+# The USB-UART dongles are used for ONE purpose: connecting a BMS, and only
+# ever one at a time. So there is no need to tell individual sticks apart --
+# matching on the bridge chip's VID:PID is enough, and it means ANY dongle from
+# the drawer works without re-editing this file.
+#
+# Per-stick matching would not work anyway: of the dongles checked, the FTDI and
+# PL2303 report no serial at all and the CP2102 reports the factory default
+# "0001" that Silicon Labs ships on every unprogrammed part.
+#
+# Verified against the physical dongles: CP2102 (10c4:ea60), FT232R (0403:6001),
+# PL2303 (067b:2303). The rest are the usual families, listed pre-emptively.
+#
+# NOTE: these match ANY device using these bridge chips -- an ESP32 dev board
+# (CH340/CP2102) plugged into this host would also claim /dev/ttyBMS. The Nova
+# masters above are unaffected: they are 0483:5740 USB-CDC on ttyACM*.
+# ---------------------------------------------------------------------------
+
+# Prolific PL2303 (original + newer GC/GB/GT/GL/GE/GS silicon)
 SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="2303", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23a3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23b3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23c3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23d3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23e3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="067b", ATTRS{idProduct}=="23f3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+
+# Silicon Labs CP210x  (CP2102/CP2102N single, CP2105 dual, CP2108 quad)
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea70", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea71", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+
+# WCH CH340 / CH341 / CH343 / CH9102
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="7523", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="5523", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d3", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1a86", ATTRS{idProduct}=="55d4", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+
+# FTDI FT232R / FT2232 / FT4232 / FT232H / FT231X
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6011", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6014", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6015", SYMLINK+="ttyBMS", GROUP="dialout", MODE="0660"
