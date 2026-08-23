@@ -505,6 +505,27 @@ if [ "$span_ok" != "yes" ]; then
     exit 1
 fi
 
+# Source the ROS environment if the shell we were handed has none.
+#
+# There are only two places the container ever sources it, and a script started
+# with `docker exec` hits neither: /ros_entrypoint.sh is the image ENTRYPOINT, so
+# it runs for `docker run` and is skipped by `docker exec`; ~/.bashrc (Dockerfile)
+# is read by bash only when INTERACTIVE, and running a script is not, -it or not.
+# On the laptop that never shows, because attach.sh opens an interactive shell and
+# the script inherits its env. On the RP it always shows: erc_run_avionics.sh
+# leaves no shell to attach to, so `docker exec <ctr> ~/scripts/calibrate_ph.sh`
+# is the normal way to run this - and it arrives here with no ros2 at all.
+#
+# set +u around the sourcing: the ROS/colcon setup files read unbound variables
+# (AMENT_TRACE_SETUP_FILES and friends), which under this script's -u aborts the
+# run inside setup.bash with an error that points nowhere near the real cause.
+if ! command -v ros2 >/dev/null 2>&1; then
+    set +u
+    if [ -f /opt/ros/humble/setup.bash ]; then . /opt/ros/humble/setup.bash; fi
+    if [ -f "$HOME/dev_ws/install/setup.bash" ]; then . "$HOME/dev_ws/install/setup.bash"; fi
+    set -u
+fi
+
 # Resolve the message types before touching the hardware. `ros2 topic pub` reports
 # an unavailable type as the bare line "The passed message type is invalid" and
 # exits non-zero, which under set -e kills the run at step 1 with no hint at all.
