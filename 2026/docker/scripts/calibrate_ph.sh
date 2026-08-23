@@ -150,8 +150,11 @@ TREND_T=3          # a trend must reach this many standard errors to count as re
                    # 3 sigma: pure noise clears it in ~0.3% of windows, so a
                    # settled probe is not held here, while a genuine transient
                    # (smooth, same sign every sample) reaches t in the tens.
-TRIES=40           # steadiness retries (~7.5 s each -> gives up after ~5 min)
-SETTLE_S=60        # dead time after a dip, before we even start checking
+TRIES=48           # steadiness retries (~7.5 s each -> gives up after ~6 min).
+                   # 48 not 40 because the settling now happens INSIDE this loop:
+                   # the old budget was a 60 s sleep plus 40 tries, and folding the
+                   # sleep in without raising the cap would have cut a slow buffer
+                   # short at exactly the point the old code was patient.
 
 # TWO GATES, because max-min cannot see a settling electrode.
 #
@@ -197,25 +200,33 @@ IDENTITY_TRIES=6   # backstop polls after that sleep, one sample each (~2 s)
 # check that catches firmware ignoring the request. TOL_PH is that same 2 mV of
 # real noise with the headroom the pH domain actually needs.
 
-# SETTLE_S pays for two things. The MCU averages PH_AVG_SIZE=10 samples at ~1.6 Hz,
-# so a 6.25 s window has to flush after every dip before the mean stops carrying
-# the previous buffer - and then the electrode itself has to equilibrate, which is
-# the far longer of the two. Note the averaging also makes consecutive samples
-# correlated (they share 9 of 10 entries), so steady()'s max-min understates real
-# movement: the dead time, not the tolerance, is what protects the fit. Cutting it
-# short does not fail loudly; it quietly fits a line through half-transitioned
-# readings, which is the worst possible outcome.
+# THERE IS NO DEAD TIME AFTER A DIP. The old SETTLE_S=60 was a clock standing in
+# for a measurement: it waited the same 60 s whether the probe was mid-transient
+# or had been sitting in the buffer for a minute already, and it never once
+# looked at the data to decide. The drift gate below is the measurement, so the
+# loop now starts immediately and the electrode sets its own pace.
 #
-# SETTLE_S/TRIES were 20/20 and that was not enough. Moving a probe into a new
-# buffer swings it tens of mV in the first minute before it asymptotes, so the
-# old 20 s dead time started checking while the transient was still running and
-# the old 20 retries gave up ~75 s later - the run died mid-calibration and the
-# cleanup trap fired with the identity calibration still on the MCU. 60/60 rides
-# the transient out and gives up after ~4 min per buffer instead.
+# The arithmetic says the gate covers what the sleep was covering. A probe moved
+# into a new buffer approaches its asymptote exponentially - call it 20 mV away
+# with a 30 s time constant. The gate trips on drift > TOL_DRIFT_V that also
+# reaches TREND_T standard errors; at n=12 with ~2 mV of noise that is ~1.7 mV
+# per 7.5 s window, i.e. 0.23 mV/s, which that transient does not fall under
+# until ~32 s in. On a quiet rig SE shrinks, the 0.5 mV floor binds instead, and
+# it holds out past 60 s. Either way it waits as long as the electrode needs and
+# no longer - and on an already-settled probe (a re-dip, a re-run after an abort)
+# it accepts the first window.
 #
-# The 2 mV criterion itself is deliberately UNCHANGED. Widening it would have
-# made the script finish too, by accepting readings that had not settled - which
-# is the failure the paragraph above is about. More patience, not more slack.
+# The MCU's moving average does not undermine this. A 10-deep box filter delays a
+# ramp, it does not flatten it: the averaged output has the same slope as the
+# input, so a settling electrode reaches the drift gate at its true rate. What
+# the averaging does do is correlate consecutive samples (they share 9 of 10
+# entries), which makes the scatter - and therefore SE - an UNDER-estimate, which
+# makes the trend test trip sooner. That errs toward more patience, not less.
+#
+# The 2 mV criterion itself is deliberately UNCHANGED. Removing the dead time is
+# not licence to widen the tolerance: widening it would make the script finish by
+# accepting readings that had not settled, which is the exact failure the gate
+# exists to prevent. Let the data decide when, not whether.
 #
 # What this does NOT fix: an electrode whose OFFSET is still walking over hours,
 # which is what a probe that was stored dry does while its gel layer forms. That
@@ -657,9 +668,8 @@ i=0
 for ph in "${PH[@]}"; do
     i=$((i + 1))
     read -rp "[$((i + 1))/$TOTAL_STEPS] rinse the probe, immerse it in the pH ${ph} buffer, then press Enter... "
-    echo "  settling for ${SETTLE_S}s (electrode response)..."
-    sleep "$SETTLE_S"
-    echo "  waiting for a steady reading..."
+    echo "  waiting for a steady reading (no fixed settle - the drift gate rejects"
+    echo "  the transient, so the electrode sets the pace)..."
     v=$(measure_steady "$TOL_V" "$TOL_DRIFT_V" mV 1000)   # VOLTS here (identity calibration)
     printf '  pH %-6s -> %s V\n' "$ph" "$v"
     readings+="$v $ph"$'\n'
