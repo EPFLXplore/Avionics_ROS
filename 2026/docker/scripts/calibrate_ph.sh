@@ -309,7 +309,21 @@ grab() { # $1=how many samples (default NSAMPLES)
     # SIGPIPE; under pipefail that non-zero status would errexit the script.
     # </dev/null: this runs between `read -rp` prompts, and a child that inherits
     # the terminal can swallow the operator's Enter. Nothing here needs stdin.
-    { timeout 40 ros2 topic echo "$TOPIC_PKT" </dev/null 2>/dev/null || true; } \
+    # --no-daemon: the ros2cli daemon is a background process in the container,
+    # and ros2cli spawns it in the SHELL'S OWN process group (daemonize.py has no
+    # start_new_session on Linux). So a Ctrl+C aimed at this script also SIGINTs
+    # the daemon: its rclpy context shuts down while its XML-RPC server keeps
+    # answering, and every later `ros2 topic echo` dies in choose_qos with
+    # "Fault 1: RuntimeError: !rclpy.ok()" - stderr, which the 2>/dev/null below
+    # swallows, so the script just reports "no packets" on a perfectly healthy
+    # graph, until someone restarts the container. Nothing here needs the
+    # daemon's cache; echo builds its own node either way.
+    #
+    # Safe for QoS too: with no daemon, choose_qos may find no publishers yet and
+    # fall back to its default, which is `sensor_data` (echo.py:41) - BEST_EFFORT,
+    # so it still matches Nexus.cpp's KeepLast(1).best_effort() publishers. The
+    # reliable-subscriber-vs-best-effort-publisher trap does not apply.
+    { timeout 40 ros2 topic echo --no-daemon "$TOPIC_PKT" </dev/null 2>/dev/null || true; } \
         | awk -v n="${1:-$NSAMPLES}" '/^ph:/ { print $2; if (++c == n) exit }'
 }
 
