@@ -476,8 +476,6 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         return;
     }
 
-    if (!txReady("LEDRequest")) return;
-
     const bool emergency = msg->mode == idOf(LedModeType::EmergencyShutdown);
 
     /* Edge-triggered: the LED state lives in the MCU, so re-sending what it
@@ -487,6 +485,25 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
                      _port.c_str(), msg->system, msg->mode);
         return;
     }
+
+    /* AFTER the dedup, deliberately - this call used to come first.
+     *
+     * txReady() counts what it refuses, and a repeat that the check above would
+     * have swallowed anyway is not a dropped command. With it first, the two
+     * paths diverged on link state alone: up, the dedup returned silently and
+     * nothing was counted; down, txReady() billed _txDropped before the dedup
+     * was ever reached. A GUI republishing an unchanged slider at ~0.5 Hz was
+     * enough to report 1200+ "commands dropped" on masters 1 and 2 while the
+     * live ports sat flat at 37 frames sent - and nothing had been lost.
+     *
+     * That counter is read to decide whether commands are going missing, so it
+     * has to mean "a command that would have been sent was not". Keep it below
+     * every filter that can refuse a command for reasons of its own.
+     *
+     * Safe against a reboot across the outage: onLinkReady() clears
+     * _lastLedValid on reconnect, so a stale cache never dedups a command the
+     * restarted MCU has not actually got. */
+    if (!txReady("LEDRequest")) return;
 
     ::LEDRequest packet{};
     packet.system = msg->system;
