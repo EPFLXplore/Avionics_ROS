@@ -30,26 +30,24 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
 
     RCLCPP_INFO(get_logger(), "Nexus[%d] starting on %s (connects + auto-reconnects)", id, _port.c_str());
 
-    auto qos_best_effort = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
-    
-    auto qos_reliable = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+    auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
 
     /* Telemetry: MCU -> RP */
-    _massPub = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", qos_best_effort);
-    _phPub = create_publisher<custom_msg::msg::PhPacket>("/EL/ph_packet", qos_best_effort);
-    _hbPub = create_publisher<custom_msg::msg::Heartbeat>("/EL/heartbeat", qos_best_effort);
+    _massPub = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", qos);
+    _phPub = create_publisher<custom_msg::msg::PhPacket>("/EL/ph_packet", qos);
+    _hbPub = create_publisher<custom_msg::msg::Heartbeat>("/EL/heartbeat", qos);
     RCLCPP_INFO(get_logger(), "publishers ready: /EL/mass_packet, /EL/ph_packet, /EL/heartbeat");
 
 
     /* Commands: RP -> MCU */
     _servoSub = create_subscription<custom_msg::msg::ServoRequest>(
-        "/EL/servo_req", qos_reliable, std::bind(&Nexus::onServoReq, this, _1));
+        "/EL/servo_req", qos, std::bind(&Nexus::onServoReq, this, _1));
     _massSub = create_subscription<custom_msg::msg::MassRequest>(
-        "/EL/mass_req", qos_best_effort, std::bind(&Nexus::onMassReq, this, _1));
+        "/EL/mass_req", qos, std::bind(&Nexus::onMassReq, this, _1));
     _ledSub = create_subscription<custom_msg::msg::LEDRequest>(
-        "/EL/led_req", qos_best_effort, std::bind(&Nexus::onLedReq, this, _1));
+        "/EL/led_req", qos, std::bind(&Nexus::onLedReq, this, _1));
     _phSub = create_subscription<custom_msg::msg::PhRequest>(
-        "/EL/ph_req", qos_best_effort, std::bind(&Nexus::onPhReq, this, _1));
+        "/EL/ph_req", qos, std::bind(&Nexus::onPhReq, this, _1));
     RCLCPP_INFO(get_logger(), "subscriptions ready: /EL/servo_req, /EL/mass_req, /EL/led_req, /EL/ph_req");
 
     /* Calibration: one slope per load cell DEVICE, replayed to the MCU on every
