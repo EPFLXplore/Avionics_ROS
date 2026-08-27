@@ -138,8 +138,6 @@ Nexus::~Nexus() {
 /* ----------------------------- RX: serial -> ROS ------------------------- */
 
 void Nexus::rxLoop() {
-    uint8_t chunk[128];
-    auto last_rx = std::chrono::steady_clock::now();
     while (_running) {
         try {
             // (Re)connect: the port vanishes on unplug and reappears (same udev
@@ -147,37 +145,27 @@ void Nexus::rxLoop() {
             if (!_io.ok()) {
                 _io.open(_port);
                 _linkUp = true;
-                last_rx = std::chrono::steady_clock::now(); // don't inherit the old link's silence
-                // A new link means a possibly-reset MCU, i.e. slopes back at the
-                // firmware fallback. Arm the replay; the executor does the send.
-                _framesAtOpen = _rxFrames.load();
-                _linkReadyPending = true;
                 RCLCPP_INFO(get_logger(), "[%s] serial port opened (USB-FS CDC)", _port.c_str());
             }
-            uint16_t n = _io.read(chunk, sizeof chunk); // parks up to 100ms; throws on unplug
-            if (n) {
-                _rxBytes += n;
-                last_rx = std::chrono::steady_clock::now();
-                RCLCPP_INFO_ONCE(get_logger(), "[%s] first bytes received from the MCU", _port.c_str());
-                _proto.parse(chunk, n, [this](const Frame& f) { onFrame(f); });
-            } else if (_proto.idle(), std::chrono::steady_clock::now() - last_rx > STALL_TIMEOUT) {
-                // idle() first, unconditionally: a poll that returned nothing is
-                // how the parser learns a half-received frame is never going to
-                // finish. Without it the FSM stays parked mid-payload and eats
-                // the next frame's header when the line comes back. Comma
-                // operator so the stall test below is untouched.
-                //
-                // Self-heal. The fd is still valid and read() never errored, but
-                // the MCU stopped talking: a hung TX ring on the firmware side,
-                // a USB suspend, or a re-enumeration onto a different ttyACM
-                // minor while we held the old one. None of those ever make
-                // read() throw, so without this the link stays dead forever and
-                // even a replug does not recover it. Throwing hands over to the
-                // catch below, which is the same proven close/reopen path used
-                // for a real unplug.
-                throw std::runtime_error("no bytes for " +
-                                         std::to_string(STALL_TIMEOUT.count()) + "s (MCU silent)");
+
+            /* Service the link, then react to a new epoch. Stall detection lives
+             * in PosixTransport::serviceLink now, not here: it is transport
+             * housekeeping, and having it inline meant the parser's resync and
+             * the reconnect were two unrelated pieces of the same event. */
+            _proto.tick(0);
+
+            if (_proto.linkReset()) {
+                // A new link means a possibly-reset MCU, i.e. slopes back at the
+                // firmware fallback. Arm the replay; the executor does the send.
+                _framesAtOpen     = _rxFrames.load();
+                _linkReadyPending = true;
             }
+
+            /* The protocol owns the drain and the stale-frame timeout. read()
+             * parks up to 100 ms inside here, which is what paces this loop. */
+            _proto.poll([this](const Frame& frame) { onFrame(frame); });
+            _rxBytes = _io.rxBytes();
+            if (_rxBytes) RCLCPP_INFO_ONCE(get_logger(), "[%s] first bytes received from the MCU", _port.c_str());
         } catch (const std::exception& e) {
             // Warn once on the down-transition; the 15s status timer covers the
             // ongoing DOWN state, so we don't repeat it every 500ms retry.

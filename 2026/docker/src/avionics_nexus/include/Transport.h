@@ -14,6 +14,8 @@
  */
 
 #pragma once
+
+#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
@@ -52,9 +54,48 @@ class PosixTransport {
 
         if (tcsetattr(_fd, TCSANOW, &tty) != 0) { const int e = errno; close(); throw std::runtime_error(std::string("tcsetattr: ") + std::strerror(e)); }
         tcflush(_fd, TCIOFLUSH);
+
+        _lastRx    = std::chrono::steady_clock::now();
+        _linkReset = true;   // epoch: the protocol resyncs its parser off this
+
+        /* FLUSH PREAMBLE. Reopening this fd fires no USB event on the MCU, so a
+         * parser left parked mid-frame over there has no way to learn the link
+         * changed - and it would splice our first real frame onto the tail of a
+         * dead one. MAX_FRAME zero bytes run any parked parser out to its
+         * declared length and fail it on CRC, which is a clean resync. This is
+         * the one loss case the MCU cannot observe for itself. */
+        static const uint8_t preamble[135] = {};
+        (void)::write(_fd, preamble, sizeof preamble);
     }
 
     bool ok() const { return _fd >= 0; }
+
+    /** Housekeeping, given a clock. On THIS side that means stall detection:
+     *  the fd stays valid and read() never errors when the MCU goes quiet - a
+     *  hung TX ring, a USB suspend, a re-enumeration onto a different ttyACM
+     *  minor while we hold the old one. None of those make read() throw, so
+     *  without this the link stays dead forever and even a replug does not
+     *  recover it. Throwing hands over to the RX loop's reconnect path.
+     *
+     *  (The MCU's CdcTransport::serviceLink does something quite different -
+     *  it releases a TX whose completion never came. Same concept, "you have a
+     *  clock, do your housekeeping"; deliberately different work.)
+     *
+     *  nowMs is unused here: this side already has steady_clock, and read() is
+     *  what knows when bytes last arrived. */
+    void serviceLink(uint32_t /*nowMs*/) {
+        if (_fd < 0) return;
+        if (std::chrono::steady_clock::now() - _lastRx <= STALL_TIMEOUT) return;
+        _lastRx = std::chrono::steady_clock::now();   // do not re-throw every call
+        throw std::runtime_error("no bytes for " +
+                                 std::to_string(STALL_TIMEOUT.count()) + "s (MCU silent)");
+    }
+
+    /** True ONCE per successful open(). */
+    bool linkReset() { const bool was = _linkReset; _linkReset = false; return was; }
+
+    /** Bytes taken off the wire since construction (diagnostics). */
+    uint64_t rxBytes() const { return _rxBytes; }
     void close() { if (_fd >= 0) { ::close(_fd); _fd = -1; } }
 
     /** Push a whole frame; true if all bytes were accepted. */
@@ -94,7 +135,9 @@ class PosixTransport {
             throw std::runtime_error("serial poll: device hung up (unplugged?)");
 
         ssize_t got = ::read(_fd, dest, maxLen);
-        if (got > 0) return static_cast<uint16_t>(got);
+        if (got > 0) { _rxBytes += static_cast<uint64_t>(got);
+                       _lastRx = std::chrono::steady_clock::now();
+                       return static_cast<uint16_t>(got); }
         if (got == 0) throw std::runtime_error("serial read: EOF (device unplugged?)");
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0; // raced with poll, fine
         throw std::runtime_error(std::string("serial read: ") + std::strerror(errno));
@@ -105,6 +148,13 @@ class PosixTransport {
      *  costs ~nothing, short enough that shutdown and stall detection stay
      *  responsive. */
     static constexpr int POLL_TIMEOUT_MS = 100;
+
+    /** How long the MCU may stay silent before the link is presumed dead. */
+    static constexpr std::chrono::seconds STALL_TIMEOUT{3};
+
+    std::chrono::steady_clock::time_point _lastRx{};
+    bool     _linkReset = false;
+    uint64_t _rxBytes   = 0;
 
     int _fd = -1;
 };

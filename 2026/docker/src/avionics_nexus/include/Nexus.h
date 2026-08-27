@@ -204,10 +204,11 @@ class Nexus : public rclcpp::Node {
         return false;
     }
 
-    /* Silence budget before the RX loop tears the port down and reopens it.
-     * The MCU heartbeats at ~10 Hz, so 3 s of nothing is unambiguously dead,
-     * while still being far longer than any legitimate gap. */
-    static constexpr std::chrono::seconds STALL_TIMEOUT{3};
+    /* The silence budget moved to PosixTransport::STALL_TIMEOUT with the stall
+     * detection itself - it is transport housekeeping, and the RX loop no longer
+     * measures anything. Same 3 s, same reasoning: the MCU heartbeats at ~10 Hz,
+     * so 3 s of nothing is unambiguously dead while still far longer than any
+     * legitimate gap. */
 
     /* Is this a device the fleet actually declares? Used only to WARN - the
      * request is still forwarded either way, because broadcast IS the routing
