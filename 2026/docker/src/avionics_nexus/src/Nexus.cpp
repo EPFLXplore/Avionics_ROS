@@ -31,6 +31,7 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
     RCLCPP_INFO(get_logger(), "Nexus[%d] starting on %s (connects + auto-reconnects)", id, _port.c_str());
 
     auto qos = rclcpp::QoS(rclcpp::KeepLast(1)).best_effort();
+    auto qos_servos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); //commands without reliable qos need spamming to work and are not deterministic
 
     /* Telemetry: MCU -> RP */
     _massPub = create_publisher<custom_msg::msg::MassPacket>("/EL/mass_packet", qos);
@@ -41,7 +42,7 @@ Nexus::Nexus(int id) : rclcpp::Node("nexus", "ttyNova" + std::to_string(id)) {
 
     /* Commands: RP -> MCU */
     _servoSub = create_subscription<custom_msg::msg::ServoRequest>(
-        "/EL/servo_req", qos, std::bind(&Nexus::onServoReq, this, _1));
+        "/EL/servo_req", qos_servos, std::bind(&Nexus::onServoReq, this, _1));
     _massSub = create_subscription<custom_msg::msg::MassRequest>(
         "/EL/mass_req", qos, std::bind(&Nexus::onMassReq, this, _1));
     _ledSub = create_subscription<custom_msg::msg::LEDRequest>(
@@ -451,11 +452,7 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
 
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
     /* Latched: an emergency shutdown has been requested, so we are done taking
-     * LED orders. Whatever is still publishing /EL/led_req - a GUI republishing
-     * its slider state, an autonomy node that never noticed - would otherwise
-     * paint straight over the one pattern the crew needs to see. Throttled
-     * because that republishing is exactly what gets refused here, and a line
-     * per refusal would bury the log. */
+     * LED orders.  */
     if (_ledLatched) {
         RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
                              "[%s] LEDRequest (system %u, mode %u) ignored: emergency shutdown is "
@@ -474,23 +471,6 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         return;
     }
 
-    /* AFTER the dedup, deliberately - this call used to come first.
-     *
-     * txReady() counts what it refuses, and a repeat that the check above would
-     * have swallowed anyway is not a dropped command. With it first, the two
-     * paths diverged on link state alone: up, the dedup returned silently and
-     * nothing was counted; down, txReady() billed _txDropped before the dedup
-     * was ever reached. A GUI republishing an unchanged slider at ~0.5 Hz was
-     * enough to report 1200+ "commands dropped" on masters 1 and 2 while the
-     * live ports sat flat at 37 frames sent - and nothing had been lost.
-     *
-     * That counter is read to decide whether commands are going missing, so it
-     * has to mean "a command that would have been sent was not". Keep it below
-     * every filter that can refuse a command for reasons of its own.
-     *
-     * Safe against a reboot across the outage: onLinkReady() clears
-     * _lastLedValid on reconnect, so a stale cache never dedups a command the
-     * restarted MCU has not actually got. */
     if (!txReady("LEDRequest")) return;
 
     ::LEDRequest packet{};
