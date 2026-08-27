@@ -92,16 +92,15 @@ struct ServoParam {
 };
 
 /* ORDER MATTERS: servoParamsMatchIds() below compares this against
- * ALL_SERVO_IDS element by element, and ALL_SERVO_IDS is not in numeric id
- * order - LeftLamp (5) is listed before RightLamp (4). Follow that array, not
- * the enum. */
+ * ALL_SERVO_IDS element by element. Both are now in numeric id order, so
+ * appending a servo means appending here too - nothing to invert. */
 constexpr ServoParam SERVO_PARAMS[] = {
     { idOf(ServoIdType::FrontCam),                       "servo_zero_front_cam"                         },
     { idOf(ServoIdType::Drill),                          "servo_zero_drill"                             },
     { idOf(ServoIdType::ServiceModuleMechanismMirrored), "servo_zero_service_module_mechanism_mirrored" },
     { idOf(ServoIdType::ServiceModuleMechanism),         "servo_zero_service_module_mechanism"          },
-    { idOf(ServoIdType::LeftLamp),                       "servo_zero_left_lamp"                         },
     { idOf(ServoIdType::RightLamp),                      "servo_zero_right_lamp"                        },
+    { idOf(ServoIdType::LeftLamp),                       "servo_zero_left_lamp"                         },
     { idOf(ServoIdType::BottomLamp),                     "servo_zero_bottom_lamp"                       },
     { idOf(ServoIdType::LampPower),                      "servo_zero_lamp_power"                        },
 };
