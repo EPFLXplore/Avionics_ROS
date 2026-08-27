@@ -5,8 +5,8 @@
  * Mirror of the MCU's CdcTransport: a thin POSIX serial driver exposing exactly
  * the two buffer-oriented methods SerialProtocol<MaxPayload, Transport> needs:
  *
- *      bool     write(const uint8_t* d, uint16_t n);  // whole frame
- *      uint16_t read (uint8_t* dst, uint16_t max);    // bytes available now
+ *      bool     write(const uint8_t* data, uint16_t len);  // whole frame
+ *      uint16_t read (uint8_t* dest, uint16_t maxLen);     // bytes available now
  *
  * It replaces the old StreamLike vtable: the protocol is templated on this type,
  * so there is no virtual dispatch. Framing/CRC live entirely in the protocol;
@@ -58,9 +58,9 @@ class PosixTransport {
     void close() { if (_fd >= 0) { ::close(_fd); _fd = -1; } }
 
     /** Push a whole frame; true if all bytes were accepted. */
-    bool write(const uint8_t* d, uint16_t n) {
+    bool write(const uint8_t* data, uint16_t len) {
         if (_fd < 0) return false;
-        return ::write(_fd, d, n) == static_cast<ssize_t>(n);
+        return ::write(_fd, data, len) == static_cast<ssize_t>(len);
     }
 
     /** Read up to max bytes. Blocks in poll() for at most POLL_TIMEOUT_MS, so an
@@ -77,25 +77,25 @@ class PosixTransport {
      *  On unplug the tty hangs up: poll() reports POLLHUP, or ::read() returns
      *  0 (EOF) or -1 with EIO/ENODEV/ENXIO. Only EAGAIN/EWOULDBLOCK means
      *  "still connected, just no data". */
-    uint16_t read(uint8_t* dst, uint16_t max) {
+    uint16_t read(uint8_t* dest, uint16_t maxLen) {
         if (_fd < 0) throw std::runtime_error("serial read: port not open");
 
         pollfd pfd{};
         pfd.fd     = _fd;
         pfd.events = POLLIN;
 
-        const int pr = ::poll(&pfd, 1, POLL_TIMEOUT_MS);
-        if (pr < 0) {
+        const int ready = ::poll(&pfd, 1, POLL_TIMEOUT_MS);
+        if (ready < 0) {
             if (errno == EINTR) return 0;   // signal, not an error
             throw std::runtime_error(std::string("serial poll: ") + std::strerror(errno));
         }
-        if (pr == 0) return 0;              // idle: nothing arrived within the timeout
+        if (ready == 0) return 0;           // idle: nothing arrived within the timeout
         if (pfd.revents & (POLLHUP | POLLERR | POLLNVAL))
             throw std::runtime_error("serial poll: device hung up (unplugged?)");
 
-        ssize_t r = ::read(_fd, dst, max);
-        if (r > 0) return static_cast<uint16_t>(r);
-        if (r == 0) throw std::runtime_error("serial read: EOF (device unplugged?)");
+        ssize_t got = ::read(_fd, dest, maxLen);
+        if (got > 0) return static_cast<uint16_t>(got);
+        if (got == 0) throw std::runtime_error("serial read: EOF (device unplugged?)");
         if (errno == EAGAIN || errno == EWOULDBLOCK) return 0; // raced with poll, fine
         throw std::runtime_error(std::string("serial read: ") + std::strerror(errno));
     }

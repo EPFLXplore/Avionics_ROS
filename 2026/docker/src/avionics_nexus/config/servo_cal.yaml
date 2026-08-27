@@ -23,16 +23,24 @@
     #
     # Which key is which id, for reading a topic that only shows a number:
     #
-    #   servo_zero_front_cam            -> id 0
-    #   servo_zero_drill                -> id 1
-    #   servo_zero_left_service_module  -> id 2
-    #   servo_zero_right_service_module -> id 3
+    #   servo_zero_front_cam                         -> id 0
+    #   servo_zero_drill                             -> id 1
+    #   servo_zero_service_module_mechanism_mirrored -> id 2
+    #   servo_zero_service_module_mechanism          -> id 3
+    #   servo_zero_right_lamp                        -> id 4
+    #   servo_zero_left_lamp                         -> id 5
+    #   servo_zero_bottom_lamp                       -> id 6
+    #   servo_zero_lamp_power                        -> id 7  (on/off, not an angle)
     #
     # Those are the values carried in `id` by /EL/servo_req. ServoIdType in
     # device_ids.h is the authority - if this comment and that enum ever
     # disagree, the enum is right and this list is stale.
 
-    servo_zero_front_cam:             0.0
-    servo_zero_drill:                 0.0
-    servo_zero_left_service_module:   0.0
-    servo_zero_right_service_module:  0.0
+    servo_zero_front_cam:                          0.0
+    servo_zero_drill:                              0.0
+    servo_zero_service_module_mechanism_mirrored:  0.0
+    servo_zero_service_module_mechanism:           0.0
+    servo_zero_right_lamp:                         0.0
+    servo_zero_left_lamp:                          0.0
+    servo_zero_bottom_lamp:                        0.0
+    servo_zero_lamp_power:                         0.0

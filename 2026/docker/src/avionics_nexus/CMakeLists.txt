@@ -18,12 +18,12 @@ add_executable(avionics_nexus
   src/NexusMain.cpp
   src/Nexus.cpp)
 
-# packets.h lives in the shared messages submodule (generated from the .msg),
-# so both firmware and RPi include the exact same file. custom_msg is a sibling
-# package in this workspace.
+# device_ids.h, packets.h and SerialProtocol.h live in Avionics_Common, checked
+# out as a submodule beside this package and in Avionics_SW too - so firmware and
+# RPi compile against the same files rather than two copies that drift.
 target_include_directories(avionics_nexus PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
-  ${CMAKE_CURRENT_SOURCE_DIR}/../custom_msg/include)
+  ${CMAKE_CURRENT_SOURCE_DIR}/../avionics_common/include)
 
 ament_target_dependencies(avionics_nexus
   rclcpp
@@ -46,7 +46,7 @@ if(BUILD_TESTING)
   # Wire-contract test: packed struct sizes + distinct ids (see test_packets.cpp).
   ament_add_gtest(test_packets test/test_packets.cpp)
   if(TARGET test_packets)
-    target_include_directories(test_packets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../custom_msg/include)
+    target_include_directories(test_packets PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../avionics_common/include)
   endif()
 endif()
 
