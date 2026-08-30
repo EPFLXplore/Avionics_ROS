@@ -402,15 +402,14 @@ void Nexus::sendInitialLedState() {
      * exists to prevent, arriving from inside the node instead of over the wire. */
     if (_ledLatched) {
         RCLCPP_WARN(get_logger(),
-                    "[%s] not setting the initial LED state after link-up: emergency shutdown is "
-                    "latched",
+                    "[%s] not setting the baseline LED state: emergency shutdown is latched",
                     _port.c_str());
         return;
     }
     if (ledMotorsLatchActive()) {
         RCLCPP_WARN(get_logger(),
-                    "[%s] not setting the initial LED state after link-up: emergency motors is "
-                    "latched for another %lld ms",
+                    "[%s] not setting the baseline LED state: emergency motors is latched for "
+                    "another %lld ms",
                     _port.c_str(), ledMotorsLatchRemainingMs());
         return;
     }
@@ -457,20 +456,28 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
     }
 }
 
-bool Nexus::ledMotorsLatchActive() {
-    if (!_ledLatchedTemporal) return false;
-    if (std::chrono::steady_clock::now() < _ledLatchTemporalUntil) return true;
+void Nexus::onLedMotorsLatchExpired() {
+    /* One-shot: rclcpp wall timers repeat, so the callback ends its own timer. */
+    if (_ledLatchTimer) _ledLatchTimer->cancel();
+    if (!_ledLatchedTemporal) return;
 
-    /* Released, not cleared by anyone: the deadline passed, so drop the latch and
-     * say so once. The de-duplication cache deliberately keeps the emergency
-     * pattern as the last thing sent - the MCU really is still showing it - so
-     * the next genuinely different request goes through and a repeat of the
-     * emergency mode is still correctly treated as a no-op. */
     _ledLatchedTemporal = false;
     RCLCPP_INFO(get_logger(),
                 "[%s] emergency motors latch expired after %u ms: LED commands accepted again",
                 _port.c_str(), static_cast<unsigned>(EMERGENCY_MOTORS_LATCH_MS));
-    return false;
+
+    /* Repaint to the baseline rather than leaving the emergency pattern up. The
+     * MCU holds LED state until something overwrites it, so without this the
+     * strip keeps showing an emergency that is over until a publisher happens to
+     * send something - and the de-duplication cache still names the emergency
+     * mode as last-sent, so "accepting commands again" would otherwise mean
+     * accepting them on top of a display nobody chose.
+     *
+     * sendInitialLedState() is exactly the state wanted here (every subsystem
+     * off, avionics on) and it refreshes the cache as it goes, which is why the
+     * latch is cleared BEFORE the call: its own guard would turn this into a
+     * no-op otherwise. */
+    sendInitialLedState();
 }
 
 long long Nexus::ledMotorsLatchRemainingMs() const {
@@ -546,6 +553,12 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
             _ledLatchedTemporal     = true;
             _ledLatchTemporalUntil  = std::chrono::steady_clock::now() +
                                       std::chrono::milliseconds(EMERGENCY_MOTORS_LATCH_MS);
+            /* Replaced, not reused: a fresh timer restarts the countdown, so
+             * re-arming mid-window really does extend it. */
+            if (_ledLatchTimer) _ledLatchTimer->cancel();
+            _ledLatchTimer = create_wall_timer(
+                std::chrono::milliseconds(EMERGENCY_MOTORS_LATCH_MS),
+                [this]() { onLedMotorsLatchExpired(); });
             RCLCPP_WARN(get_logger(),
                         "[%s] emergency motors forwarded: LED commands are now latched off for %u ms "
                         "and every further LEDRequest will be ignored until that expires",

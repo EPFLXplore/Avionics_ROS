@@ -184,16 +184,21 @@ class Nexus : public rclcpp::Node {
      * with it. `what` names the caller for the log/warning. */
     bool sendLed(uint8_t system, uint8_t mode, const char* what);
 
-    /* Is the emergency-motors latch still holding? Clears itself - and logs the
-     * release - the first time it is asked after the deadline, so expiry needs no
-     * timer of its own and touches the latch state only from the executor
-     * thread, exactly like every other access to it. */
-    bool ledMotorsLatchActive();
+    /* Is the emergency-motors latch still holding? A pure read of the flag, never
+     * a release: onLedMotorsLatchExpired() is the ONLY thing that clears it. That
+     * matters because release now has a side effect - the baseline repaint - so a
+     * second release path would be a request refused with no repaint behind it. */
+    bool ledMotorsLatchActive() const { return _ledLatchedTemporal; }
 
     /* Milliseconds still on the emergency-motors latch, for the log lines that
-     * refuse a request. 0 when nothing is latched. Const and side-effect free -
-     * ledMotorsLatchActive() is the one that releases. */
+     * refuse a request. 0 when nothing is latched. */
     long long ledMotorsLatchRemainingMs() const;
+
+    /* Fired by _ledLatchTimer once the window is up: drops the latch and repaints
+     * the strip to the baseline (every subsystem off, avionics on) so whatever
+     * comes next starts from a known state rather than from the emergency
+     * pattern the MCU is still holding. */
+    void onLedMotorsLatchExpired();
 
     /* LedSystemType / LedModeType come from device_ids.h in the shared messages
      * submodule, so this and LEDStrip::handleMode() on the firmware compile
@@ -301,5 +306,11 @@ class Nexus : public rclcpp::Node {
      * meaningful while _ledLatchedTemporal is set. */
     bool _ledLatchedTemporal{false};
     std::chrono::steady_clock::time_point _ledLatchTemporalUntil{};
+
+    /* One-shot (cancelled by its own callback), re-created on every arming so a
+     * second emergency-motors request mid-window pushes the expiry out instead of
+     * repainting on the first one's schedule. Held as a member only to keep it
+     * alive and cancellable; nothing else reads it. */
+    rclcpp::TimerBase::SharedPtr _ledLatchTimer;
 };
 
