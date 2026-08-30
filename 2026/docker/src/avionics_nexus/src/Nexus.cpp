@@ -407,6 +407,13 @@ void Nexus::sendInitialLedState() {
                     _port.c_str());
         return;
     }
+    if (ledMotorsLatchActive()) {
+        RCLCPP_WARN(get_logger(),
+                    "[%s] not setting the initial LED state after link-up: emergency motors is "
+                    "latched for another %lld ms",
+                    _port.c_str(), ledMotorsLatchRemainingMs());
+        return;
+    }
 
     /* Blank every other subsystem before announcing avionics. A reset MCU boots
      * the strip into LedsThread's start state and only the segments we name get
@@ -450,6 +457,29 @@ void Nexus::sendMassScale(uint8_t id, float scale) {
     }
 }
 
+bool Nexus::ledMotorsLatchActive() {
+    if (!_ledLatchedTemporal) return false;
+    if (std::chrono::steady_clock::now() < _ledLatchTemporalUntil) return true;
+
+    /* Released, not cleared by anyone: the deadline passed, so drop the latch and
+     * say so once. The de-duplication cache deliberately keeps the emergency
+     * pattern as the last thing sent - the MCU really is still showing it - so
+     * the next genuinely different request goes through and a repeat of the
+     * emergency mode is still correctly treated as a no-op. */
+    _ledLatchedTemporal = false;
+    RCLCPP_INFO(get_logger(),
+                "[%s] emergency motors latch expired after %u ms: LED commands accepted again",
+                _port.c_str(), static_cast<unsigned>(EMERGENCY_MOTORS_LATCH_MS));
+    return false;
+}
+
+long long Nexus::ledMotorsLatchRemainingMs() const {
+    if (!_ledLatchedTemporal) return 0;
+    const auto left = _ledLatchTemporalUntil - std::chrono::steady_clock::now();
+    if (left <= std::chrono::steady_clock::duration::zero()) return 0;
+    return std::chrono::duration_cast<std::chrono::milliseconds>(left).count();
+}
+
 void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
     /* Latched: an emergency shutdown has been requested, so we are done taking
      * LED orders.  */
@@ -461,7 +491,20 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         return;
     }
 
-    const bool emergency = msg->mode == idOf(LedModeType::EmergencyShutdown);
+    /* Same refusal, with an end to it. Checked before the de-duplication cache so
+     * a refused request never updates it: the MCU is still showing the emergency
+     * pattern, and recording anything else as "last sent" would make the request
+     * that finally repaints it look like a repeat and drop it. */
+    if (ledMotorsLatchActive()) {
+        RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000,
+                             "[%s] LEDRequest (system %u, mode %u) ignored: emergency motors is "
+                             "latched for another %lld ms",
+                             _port.c_str(), msg->system, msg->mode, ledMotorsLatchRemainingMs());
+        return;
+    }
+
+    const bool emergency_shutdown = msg->mode == idOf(LedModeType::EmergencyShutdown);
+    const bool emergency_motors = msg->mode == idOf(LedModeType::EmergencyMotors);
 
     /* Edge-triggered: the LED state lives in the MCU, so re-sending what it
      * already holds only burns link bandwidth that the sensor stream needs. */
@@ -486,12 +529,27 @@ void Nexus::onLedReq(const custom_msg::msg::LEDRequest::SharedPtr msg) {
         /* Latch only after the frame is on the wire: if the write failed the MCU
          * never got the shutdown, and refusing every later request would leave us
          * silent about a strip that is still showing the old pattern. */
-        if (emergency) {
+        if (emergency_shutdown) {
             _ledLatched = true;
             RCLCPP_WARN(get_logger(),
                         "[%s] emergency shutdown forwarded: LED commands are now latched off and "
                         "every further LEDRequest will be ignored until this node restarts",
                         _port.c_str());
+        }
+        if (emergency_motors) {
+            /* Re-armed from now on every emergency-motors request, so a second one
+             * mid-latch extends the window rather than expiring on the first one's
+             * clock. Only reachable when the mode actually changed - a repeat of
+             * the same (system, mode) is dropped by the de-duplication cache above,
+             * which is why re-arming here cannot be driven by a GUI republishing at
+             * its own rate. */
+            _ledLatchedTemporal     = true;
+            _ledLatchTemporalUntil  = std::chrono::steady_clock::now() +
+                                      std::chrono::milliseconds(EMERGENCY_MOTORS_LATCH_MS);
+            RCLCPP_WARN(get_logger(),
+                        "[%s] emergency motors forwarded: LED commands are now latched off for %u ms "
+                        "and every further LEDRequest will be ignored until that expires",
+                        _port.c_str(), static_cast<unsigned>(EMERGENCY_MOTORS_LATCH_MS));
         }
     } else {
         /* Cache stays as-is on a failed write: nothing reached the MCU, so the

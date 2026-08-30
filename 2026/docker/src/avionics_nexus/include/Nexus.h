@@ -36,6 +36,9 @@
 #include "device_ids.h"
 #include "packets.h"
 
+
+constexpr uint16_t EMERGENCY_MOTORS_LATCH_MS = 20000; // how long to latch off LED commands after an EmergencyMotors request
+
 /* Every load cell in the FLEET, with the mass_cal.yaml key that carries its
  * slope - not the cells behind any one master. Nexus deliberately does not know
  * which master serves which device: commands go out to every port and the
@@ -181,6 +184,17 @@ class Nexus : public rclcpp::Node {
      * with it. `what` names the caller for the log/warning. */
     bool sendLed(uint8_t system, uint8_t mode, const char* what);
 
+    /* Is the emergency-motors latch still holding? Clears itself - and logs the
+     * release - the first time it is asked after the deadline, so expiry needs no
+     * timer of its own and touches the latch state only from the executor
+     * thread, exactly like every other access to it. */
+    bool ledMotorsLatchActive();
+
+    /* Milliseconds still on the emergency-motors latch, for the log lines that
+     * refuse a request. 0 when nothing is latched. Const and side-effect free -
+     * ledMotorsLatchActive() is the one that releases. */
+    long long ledMotorsLatchRemainingMs() const;
+
     /* LedSystemType / LedModeType come from device_ids.h in the shared messages
      * submodule, so this and LEDStrip::handleMode() on the firmware compile
      * against the same enum rather than two hand-kept copies of the numbers. */
@@ -276,5 +290,16 @@ class Nexus : public rclcpp::Node {
      * Restart the node to accept LED commands again. Executor-thread only, same
      * as the de-duplication state above. */
     bool _ledLatched{false};
+
+    /* Emergency-motors latch: the same refusal, but for EMERGENCY_MOTORS_LATCH_MS
+     * instead of forever - a motor emergency passes on its own, and the crew
+     * should not have to restart a node to get the strip back afterwards.
+     *
+     * The deadline is steady-clock, like the wall timers above, because what is
+     * being expressed is "20 s after the frame went out" and not a wall-clock
+     * date: a system time step must not cut the latch short or stretch it. Only
+     * meaningful while _ledLatchedTemporal is set. */
+    bool _ledLatchedTemporal{false};
+    std::chrono::steady_clock::time_point _ledLatchTemporalUntil{};
 };
 
