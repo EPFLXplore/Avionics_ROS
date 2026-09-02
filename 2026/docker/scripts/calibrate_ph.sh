@@ -112,19 +112,127 @@ TOTAL_STEPS=$((NPOINTS + 3))
 STEP_FIT=$((NPOINTS + 2))
 
 NSAMPLES=12        # samples per steadiness check (1.6 Hz -> ~7.5 s window)
-TOL_V=0.002        # SPREAD gate: steady when (max-min) <= 2 mV, about 0.034 pH
-TOL_PH=0.08        # spread gate in the pH domain, for the read-back
-                   # LOOSER than TOL_V's 0.035 pH equivalent, deliberately: the
-                   # buffer samples feed the fit and their mean must be precise,
-                   # while the read-back only has to confirm the MCU applied the
-                   # line and the electrode held still - both of which the
-                   # deviation test below actually measures. 0.08 is the ceiling,
-                   # not a preference: it sets the read-back's mean uncertainty,
-                   # which sets how big STABILITY_TOL must be to stay a 4-sigma
-                   # gate, and past 0.08 that gate grows past the 0.157 pH drift
-                   # it was added to catch.
-TOL_DRIFT_V=0.0005 # TREND gate: net drift across the window, volts (0.5 mV)
-TOL_DRIFT_PH=0.04  # trend gate in the pH domain - deliberately MUCH looser
+TOL_V=0.0005       # SPREAD gate: steady when (max-min) <= 0.5 mV, ~0.008 pH
+                   # 2 mV -> 0.3 -> 0.35 -> 0.5. The tight end of that range was
+                   # chasing settling with the wrong instrument: this gate is
+                   # NOT what catches a settling probe - STEADY_RUNS is - and
+                   # sizing it as though it were is what made 0.3 mV reject half
+                   # of all windows for noise the fit does not care about.
+                   # Measured on this rig, sigma_raw ~0.5 mV through the MCU's
+                   # 10-deep average puts the median window range at 0.28 mV
+                   # with a long tail (observed rejects: 0.328, 0.353, 0.436,
+                   # 0.566, 0.573, 0.697 mV).
+                   #
+                   # 0.5 vs 0.8 was measured rather than argued, 30 settled runs
+                   # each: 0.5 mV completed 30/30 at a mean 126 s and a worst
+                   # 150 s; 0.8 mV completed 30/30 at a flat 120 s. Loosening
+                   # further buys ~6 s and admits noisier windows into the mean,
+                   # so 0.5 is kept. Windows in the 0.55-0.7 mV tail are simply
+                   # skipped - they do not reset the streak - which is why the
+                   # cost is seconds rather than a restart.
+                   #
+                   # Its only job is rejecting windows too disturbed to mean
+                   # anything. A window admitted here contributes at most
+                   # 0.008 pH of spread to a mean averaged over 16 windows.
+                   #
+                   # NOT for precision. The window MEAN feeds the fit, and 12
+                   # samples spanning 2 mV already gave a mean good to 0.0025 pH,
+                   # 40x finer than the 0.1 pH the rover needs. 0.3 mV takes that
+                   # to 0.0004 pH, which buys nothing. The reason to tighten it
+                   # is settling, and the reason is worth writing down:
+                   #
+                   # A probe approaching its asymptote exponentially with R mV
+                   # still to go moves R*(1-exp(-7.5/tau)) across one window, so
+                   # passing a spread gate of TOL bounds the error left in the
+                   # reading at R <= TOL/(1-exp(-7.5/tau)). That bound depends
+                   # entirely on tau, and gets bad fast when tau is long:
+                   #
+                   #     tau     TOL=2 mV        TOL=0.3 mV
+                   #      30 s   9.0 mV 0.15 pH  1.4 mV 0.023 pH
+                   #     120 s  33.0 mV 0.56 pH  5.0 mV 0.084 pH
+                   #     300 s  81.0 mV 1.37 pH 12.2 mV 0.205 pH
+                   #
+                   # The tau=30 s / 2 mV cell is 0.153 pH, which is the 0.157 pH
+                   # drift incident the comments below were written around - the
+                   # model reproduces the one event we have measured.
+                   #
+                   # So the spread gate alone is only a settling check for a FAST
+                   # probe. At tau=300 s - a probe on its first dip out of dry
+                   # storage - even 0.3 mV admits 12 mV, and the 2026-09-02 run
+                   # missed by 11.1 mV on the buffer it read first. That is why
+                   # the trend gate has to stay alive: it tests whether the drift
+                   # is real and consistently signed, which does not care what
+                   # tau is. Tightening this is not a substitute for it.
+                   #
+                   # THE ONE HARD CONSTRAINT: steady() tests spread FIRST and
+                   # returns, so any window reaching the drift test has range
+                   # <= TOL_V, and for n=12 an OLS fit over range R cannot report
+                   # a net drift above 1.385*R. TOL_DRIFT_V must therefore stay
+                   # under TOL_V/1.385 or `ad > dtol` is unsatisfiable and the
+                   # trend gate is dead code. At TOL_V=0.0003 the cap is 0.217 mV
+                   # - the old 0.5 mV floor could never fire. Move these two
+                   # together, always.
+TOL_PH=0.03        # spread gate in the pH domain, for the read-back
+                   # Sized against TOL_V's 0.034 pH equivalent, and now sitting
+                   # just under it (0.08 -> 0.03) rather than above: the buffer
+                   # samples feed the fit and their mean must be precise, while
+                   # the read-back only has to confirm the MCU applied the line
+                   # and the electrode held still - both of which the deviation
+                   # test below actually measures. 0.08 was the ceiling, not a
+                   # preference: it sets the read-back's mean uncertainty, which
+                   # sets how big STABILITY_TOL must be to stay a 4-sigma gate,
+                   # and past 0.08 that gate grows past the 0.157 pH drift it
+                   # was added to catch. Coming DOWN from it is what lets
+                   # STABILITY_TOL go back to 0.10 (see its note below).
+                   #
+                   # The cost is patience, not correctness: 0.03 pH is ~1.8 mV
+                   # of electrode stability at the read-back, about what TOL_V
+                   # already demands of a buffer window. If the last step starts
+                   # timing out on a healthy probe, this is the number to relax
+                   # - and STABILITY_TOL has to move with it.
+TOL_DRIFT_V=0.001  # TREND gate: net drift across the window, volts (1 mV)
+                   # Effectively a no-op at the current TOL_V, by design. Do not
+                   # "fix" it into firing more often.
+                   #
+                   # steady() tests spread first and returns, so a window
+                   # reaching this test has range <= TOL_V, and for n=12 an OLS
+                   # fit over range R cannot report net drift above 1.385*R.
+                   # At TOL_V=0.0005 that caps drift at 0.36 mV, well under
+                   # this 1 mV threshold, so the branch cannot fire at all.
+                   # That is deliberate. Every threshold low enough to clear the
+                   # cap is also below the noise floor: measured at sigma_raw =
+                   # 0.5 mV, noise-driven drift has a median of 0.18 mV and a
+                   # p99 of 0.67 mV, and 0.1 mV tripped on 71% of windows from a
+                   # PERFECTLY SETTLED probe with the sign flipping every pass.
+                   # The two constraints have no overlap, and the t >= TREND_T
+                   # test does not rescue it - the MCU's averaging correlates
+                   # consecutive samples, shrinking the residuals about the
+                   # fitted line, which deflates SE and INFLATES t.
+                   #
+                   # It is the wrong measurement on the wrong timescale. Slow
+                   # settling is caught by STEADY_RUNS over a 2 min baseline
+                   # instead. Kept, not deleted, so the branch means something
+                   # again if TOL_V is ever loosened past ~1.4 mV.
+                   #
+                   # The history is worth keeping because it was expensive:
+                   #   0.1 mV  tripped on 71% of windows from a PERFECTLY
+                   #           SETTLED probe, sign flipping every pass
+                   #   0.5 mV  tripped on 4.8%, and since a drift trip RESETS
+                   #           the streak that is a 0.952^16 = 45% chance of
+                   #           ever completing a 16-window run
+                   # Noise-driven drift at sigma_raw = 0.5 mV has a median of
+                   # 0.18 mV and a p99 of 0.67 mV, so any threshold low enough
+                   # to catch real settling inside 7.5 s is also low enough to
+                   # fire constantly on noise. The t >= TREND_T test does not
+                   # rescue it: the MCU's averaging correlates consecutive
+                   # samples, which shrinks the residuals about the fitted line,
+                   # which deflates SE and INFLATES t. It is the wrong
+                   # measurement on the wrong timescale, and no threshold fixes
+                   # that.
+                   #
+                   # Slow settling - the thing this was really for - is caught
+                   # properly by STEADY_RUNS over a 2 min baseline instead.
+TOL_DRIFT_PH=0.015 # trend gate in the pH domain - deliberately MUCH looser
                    # than TOL_DRIFT_V, because the two protect different things.
                    # A buffer sample feeds the fit and is used minutes later, so
                    # drift in it becomes fit error and must stay tight. The
@@ -133,11 +241,16 @@ TOL_DRIFT_PH=0.04  # trend gate in the pH domain - deliberately MUCH looser
                    # against - so a tight gate here only re-checks, badly, what
                    # is already checked well.
                    #
-                   # 0.04 is set by keeping the two consistent: drift that slips
-                   # through must still be caught downstream. At 0.04 pH per
-                   # 7.5 s window, a ~30 s gap to the read-back accumulates
-                   # 0.16 pH, which STABILITY_TOL=0.14 catches. Anything under
+                   # 0.015 is set by keeping the two consistent: drift that
+                   # slips through must still be caught downstream. At 0.015 pH
+                   # per 7.5 s window, a ~30 s gap to the read-back accumulates
+                   # 0.06 pH, which STABILITY_TOL=0.10 catches. Anything under
                    # that gate is drift too small to matter by definition.
+                   #
+                   # It also has to clear the same 1.385x cap TOL_V's note
+                   # explains: spread is tested first, so a drift tolerance at
+                   # or above TOL_PH/1.385 = 0.022 can never fire. 0.03/0.015
+                   # keeps the documented 2:1 separation; 0.03/0.03 did not.
                    #
                    # This also stops the gate fighting WANDER. The significance
                    # test in steady() rejects noise that merely mimics a trend
@@ -146,11 +259,99 @@ TOL_DRIFT_PH=0.04  # trend gate in the pH domain - deliberately MUCH looser
                    # in the next one (+0.025 then -0.032 pH, observed). A single
                    # window cannot tell those apart; a threshold set by what
                    # actually matters downstream does not need to.
+STEADY_RUNS=8      # consecutive passing windows required before a reading is
+                   # accepted, each ~7.5 s -> a 60 s floor on every dip.
+                   #
+                   # This is the gate that refuses a quick dip, and it exists
+                   # because every other gate in this file looks INSIDE one
+                   # 7.5 s window. That is a timescale, and settling slower than
+                   # it is invisible: at tau=300 s a probe 12 mV from its
+                   # asymptote moves 0.30 mV per window, so a single window can
+                   # look perfectly steady while the reading is 0.2 pH from
+                   # where it is heading.
+                   #
+                   # WHY 8, AND WHY NOT 4. The first cut used 4 windows and compared
+                   # max-min of their means, which does not work, and measuring
+                   # it is the only way to see that. The MCU publishes a 10-deep
+                   # moving average, so 12 samples inside one window are worth
+                   # only ~1-2 independent ones and a window mean is barely
+                   # quieter than a single sample. Averaging therefore has to
+                   # come from a LONGER BASELINE, not from more samples inside a
+                   # window. Measured on a perfectly settled probe at
+                   # sigma_raw = 0.5 mV, comparing mean(first half) against
+                   # mean(second half) of a streak of N windows:
+                   #
+                   #    N   baseline   p99 of |step|   slowest march it can hide
+                   #    4      30 s      0.31 mV       73 mV/hr -> 0.207 pH
+                   #    8      60 s      0.21 mV       25 mV/hr -> 0.070 pH
+                   #   16     120 s      0.15 mV        9 mV/hr -> 0.025 pH
+                   #   24     180 s      0.15 mV        6 mV/hr -> 0.016 pH
+                   #
+                   # ("hide" = drift small enough to pass, accumulated over a
+                   # 10 min calibration.) At N=4 the threshold has to sit above
+                   # 0.3 mV just to clear noise, and a gate that loose hides
+                   # 0.2 pH - it would have passed the 2026-09-02 run, so 4 is
+                   # out on evidence.
+                   #
+                   # 8 is a deliberate trade of accuracy for dwell: it spends
+                   # 0.051 pH of the 0.1 pH budget on undetected drift where 16
+                   # spends 0.025, and it leaves roughly twice as much
+                   # un-settled error in a reading from a sluggish probe
+                   # (measured: 1.8 mV vs 0.8 mV at tau=300 s with 2 mV to go).
+                   # What it buys is 64 s per buffer instead of 126 s, about
+                   # 3 min off a three-point run. It still rejects the case this
+                   # gate was built for - tau=300 s with 20 mV to go, the
+                   # 2026-09-02 failure - which is what makes the trade
+                   # defensible rather than a rollback. Go to 16 if the budget
+                   # ever gets tight; do not go below 8.
+                   #
+                   # It is a measurement, not the old SETTLE_S clock coming
+                   # back. The dwell is a floor, not a fixed wait: a probe still
+                   # moving keeps failing and keeps waiting, and one that
+                   # settled during the previous dip clears it in 120 s flat.
+                   # The file's rule still holds - the data decides WHEN, this
+                   # only decides that it has to be asked over a long enough
+                   # baseline to answer.
+SETTLE_STEP_V=0.00015   # max |mean(first half) - mean(second half)| across the
+SETTLE_STEP_PH=0.004    # streak, volts / pH. Sized at the p99 of that statistic
+                   # on a settled probe. At STEADY_RUNS=8 it blocks ~8% of
+                   # individual checks - which costs seconds, not runs, because
+                   # the streak slides: measured 30/30 completions at a mean
+                   # 64 s against the 60 s floor. It bounds undetected drift at
+                   # 18 mV/hour = 0.051 pH over a 10 min calibration (at 16
+                   # windows the same threshold bounds it at 0.025 pH). That is the residual budget this gate
+                   # protects - do not widen it without redoing the table above.
+                   #
+                   # A STEP, not a max-min span: max-min is an extreme-value
+                   # statistic that grows with N, so it gets WORSE as the
+                   # baseline lengthens, which is precisely backwards. The
+                   # half-to-half step averages instead, and improves with N.
+                   # Regression-tested against a simulated exponential probe
+                   # driven through the MCU's 10-deep average at sigma_raw =
+                   # 0.5 mV, running THIS code rather than a model of it - which
+                   # is how two bad thresholds were caught before they shipped:
+                   #
+                   #   settled probe, re-dip      accept  75 s, +0.07 mV
+                   #   tau=30 s,  20 mV to go     accept 173 s, +0.34 mV
+                   #   tau=120 s, 10 mV to go     accept 338 s, +0.76 mV
+                   #   tau=300 s,  2 mV to go     accept  75 s, +1.80 mV
+                   #   tau=300 s, 20 mV to go     REJECT  <- the 2026-09-02 run
+                   #   2 mV/hour E0 walk          accept  75 s (correctly: no
+                   #     gate here can see that one, only soaking fixes it)
+                   #
+                   # 30/30 settled runs completed, mean 64 s against the 60 s
+                   # floor. So on a good probe budget ~1 min per buffer, on a
+                   # sluggish one 3-6 min, and expect a genuinely unsettled one
+                   # to fail rather than finish slowly - the answer there is
+                   # soaking, not a bigger TRIES. The floor is ~1.8 mV =
+                   # 0.030 pH of un-settled error left in a reading, against a
+                   # 0.1 pH budget: it does not make slow settling impossible,
+                   # it makes it visible and bounded.
 TREND_T=3          # a trend must reach this many standard errors to count as real
                    # 3 sigma: pure noise clears it in ~0.3% of windows, so a
                    # settled probe is not held here, while a genuine transient
                    # (smooth, same sign every sample) reaches t in the tens.
-TRIES=48           # steadiness retries (~7.5 s each -> gives up after ~6 min).
+TRIES=80           # steadiness retries (~7.5 s each -> gives up after ~10 min).
                    # 48 not 40 because the settling now happens INSIDE this loop:
                    # the old budget was a 60 s sleep plus 40 tries, and folding the
                    # sleep in without raising the cap would have cut a slow buffer
@@ -238,16 +439,24 @@ IDENTITY_TRIES=6   # backstop polls after that sleep, one sample each (~2 s)
 
 NERNST_MV=59.16    # theoretical mV per pH at 25 C, ideal glass electrode
 PH_SPAN_MIN=2.0    # buffers must span at least this much pH for the fit to mean anything
-RESID_MAX=0.30     # max acceptable |residual| at any buffer, in pH (3-point runs only)
+RESID_MAX=0.05     # max acceptable |residual| at any buffer, in pH (3-point runs only)
                    # Least squares spreads one bad point across all three, so a
                    # single buffer wrong by d shows up as a worst residual of
-                   # about 2d/3. This threshold therefore trips at d ~ 0.45 pH:
-                   # tight enough to catch a stale or cross-contaminated buffer,
-                   # loose enough to ignore ordinary electrode nonlinearity.
+                   # about 2d/3. This threshold therefore trips at d ~ 0.075 pH.
+                   # Tightened 0.30 -> 0.05 because 0.30 could not see a buffer
+                   # wrong by a third of a pH: the 2026-09-02 run below came in
+                   # at 0.2166 and would have PASSED at 0.30.
+                   #
+                   # 0.05 is affordable - the best fit on record is 0.0056 - and
+                   # it leaves the rest of the 0.1 pH budget for the ~2 h hold.
+                   # It is a gate on the DATA, not a knob on the fit: no
+                   # slope/offset pair can lower a residual that least squares
+                   # has already minimised, so a run that trips this wants new
+                   # readings, never new numbers.
                    # Meaningless with two points, where the fit passes exactly
                    # through both by construction - hence the skip below.
 VERIFY_TOL=0.30    # read-back miss above this means the MCU ignored the request
-STABILITY_TOL=0.14 # read-back miss above THIS means the electrode moved, in pH
+STABILITY_TOL=0.1 # read-back miss above THIS means the electrode moved, in pH
                    # 0.10 because the deviation carries the noise of TWO window
                    # means - the buffer sample the fit was built on, and the
                    # read-back sample - which combine to ~0.025 pH with a
@@ -436,11 +645,36 @@ steady() { # $1=spread tolerance  $2=drift tolerance
 # Scale a machine value into display units (volts -> mV, pH -> pH).
 disp() { awk -v v="$1" -v s="$2" 'BEGIN { printf "%.3f", v * s }'; }
 
-measure_steady() { # $1=spread tol  $2=drift tol  $3=unit label  $4=display scale
-    local val kind rem i last=""
+# |mean(first half) - mean(second half)| and overall mean, for a list of window
+# means. See SETTLE_STEP_V for why this shape rather than max-min.
+half_step() { awk -v s="$1" 'BEGIN {
+    n = split(s, a, " "); h = int(n / 2); lo = 0; hi = 0; t = 0
+    for (i = 1; i <= h; i++)         lo += a[i]
+    for (i = n - h + 1; i <= n; i++) hi += a[i]
+    for (i = 1; i <= n; i++)         t  += a[i]
+    d = lo / h - hi / h; if (d < 0) d = -d
+    printf "%.6f %.6f", d, t / n }'; }
+
+measure_steady() { # $1=spread tol  $2=drift tol  $3=unit label  $4=display scale  $5=step tol
+    local val kind rem i last="" runs="" nruns=0 step avg
     for ((i = 1; i <= TRIES; i++)); do
         val=$(grab | steady "$1" "$2")
         kind=${val%% *}
+        # A window that shows the probe MOVING breaks the streak - that is the
+        # whole point. A window merely too NOISY does not: noise is a property
+        # of the rig, not of the electrode, and dropping the streak for it makes
+        # the settle gate hostage to the BNC leak. The lurch case that argues
+        # for resetting is already covered, because a probe that settles, moves,
+        # and re-settles produces halves that disagree, and the step check below
+        # is exactly that test.
+        #
+        # A consequence worth knowing when reading the log: nruns counts PASSING
+        # windows, not attempts, so "7/16" may have taken 7 tries or 20, and the
+        # streak's real baseline is >= STEADY_RUNS * 7.5 s - longer whenever
+        # noisy windows are interleaved. That errs toward more sensitivity in the
+        # step test, never less, so it is left as is. The try counter on each
+        # line is what tells you how much of TRIES is gone.
+        case "$kind" in none|short|drift) runs=""; nruns=0 ;; esac
         case "$kind" in
             none)
                 echo "no packets on $TOPIC_PKT - is the bridge running, and does this board carry the probe?" >&2
@@ -465,7 +699,37 @@ measure_steady() { # $1=spread tol  $2=drift tol  $3=unit label  $4=display scal
                         "$(disp "$(echo "$val" | cut -d' ' -f2)" "$4")" "$3" \
                         "$(disp "$rem" "$4")" "$3" "$i" "$TRIES" >&2
                 fi ;;
-            *)  echo "$val"; return ;;
+            *)
+                # A steady window. Hold it and require STEADY_RUNS in a row
+                # whose two halves agree - see STEADY_RUNS above for why one
+                # window is not enough, and why 4 of them were not either.
+                # Sliding, not resetting: once the probe stops moving the oldest
+                # window ages out and the run passes, so a long settle costs
+                # exactly as long as it takes and no extra penalty at the end.
+                runs="${runs:+$runs }$val"
+                nruns=$((nruns + 1))
+                if [ "$nruns" -gt "$STEADY_RUNS" ]; then
+                    runs="${runs#* }"
+                    nruns=$STEADY_RUNS
+                fi
+                if [ "$nruns" -lt "$STEADY_RUNS" ]; then
+                    last=settle
+                    printf '  steady window %d/%d - holding to confirm it is not still settling (try %d/%d)...\n' \
+                        "$nruns" "$STEADY_RUNS" "$i" "$TRIES" >&2
+                    continue
+                fi
+                read -r step avg <<<"$(half_step "$runs")"
+                if [ "$(awk -v a="$step" -v t="$5" 'BEGIN { print (a > t) ? "yes" : "no" }')" = "yes" ]; then
+                    last=settle
+                    printf '  steady but still MOVING: %s %s between the halves of the last %d windows (try %d/%d)...\n' \
+                        "$(disp "$step" "$4")" "$3" "$STEADY_RUNS" "$i" "$TRIES" >&2
+                    continue
+                fi
+                # Mean of all STEADY_RUNS windows, not one: with the MCU's
+                # 10-deep average a single window mean is barely quieter than a
+                # single sample, so this longer average is where the fit's input
+                # precision actually comes from.
+                echo "$avg"; return ;;
         esac
     done
 
@@ -475,6 +739,15 @@ measure_steady() { # $1=spread tol  $2=drift tol  $3=unit label  $4=display scal
         echo "never received a full window of samples. The bridge is publishing, but" >&2
         echo "not fast enough to judge - check the Nexus log for a reconnect loop and" >&2
         echo "'ros2 topic hz $TOPIC_PKT' for the real rate (expected ~1.6 Hz)." >&2
+    elif [ "$last" = "settle" ]; then
+        echo "individual windows were steady, but they never AGREED with each other" >&2
+        echo "across ${STEADY_RUNS} in a row. That is slow settling: too gradual to show up" >&2
+        echo "inside one 7.5 s window, plainly visible over the ~1 min the streak spans." >&2
+        echo "It is the failure" >&2
+        echo "mode that used to pass silently and land in the fit as a residual." >&2
+        echo "Soak the probe for a few hours - a dry-stored electrode's gel layer" >&2
+        echo "takes that long to form - and rinse from a near-neighbour buffer" >&2
+        echo "rather than jumping across the range." >&2
     elif [ "$last" = "drift" ]; then
         echo "reading never stopped drifting. The electrode is still equilibrating, which" >&2
         echo "after this long usually means it was stored dry and its gel layer is still" >&2
@@ -668,9 +941,9 @@ i=0
 for ph in "${PH[@]}"; do
     i=$((i + 1))
     read -rp "[$((i + 1))/$TOTAL_STEPS] rinse the probe, immerse it in the pH ${ph} buffer, then press Enter... "
-    echo "  waiting for a steady reading (no fixed settle - the drift gate rejects"
-    echo "  the transient, so the electrode sets the pace)..."
-    v=$(measure_steady "$TOL_V" "$TOL_DRIFT_V" mV 1000)   # VOLTS here (identity calibration)
+    echo "  waiting for a steady reading: ${STEADY_RUNS} windows that agree end to end,"
+    echo "  so the electrode sets the pace (expect 2-5 min on a well-soaked probe)..."
+    v=$(measure_steady "$TOL_V" "$TOL_DRIFT_V" mV 1000 "$SETTLE_STEP_V")   # VOLTS here (identity calibration)
     printf '  pH %-6s -> %s V\n' "$ph" "$v"
     readings+="$v $ph"$'\n'
 done
@@ -859,7 +1132,7 @@ echo "live read-back (probe is still in the pH ${PH_LAST} buffer):"
 # is a hard failure rather than a skip - an unverifiable read-back is exactly what
 # a board that ignored the request looks like, so passing the run anyway would
 # defeat the only check that can tell the difference.
-verif=$(measure_steady "$TOL_PH" "$TOL_DRIFT_PH" pH 1)
+verif=$(measure_steady "$TOL_PH" "$TOL_DRIFT_PH" pH 1 "$SETTLE_STEP_PH")
 
 # Compare against the FITTED value at this buffer, not its nominal pH. Those are
 # the same number at two points and differ by that buffer's residual at three, so
