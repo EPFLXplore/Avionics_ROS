@@ -107,5 +107,73 @@
     # 2-4 GOhm) produces exactly this shape - slope attenuated, offset dragged
     # negative - so refit once the BNC is properly dry and see whether both move
     # back. If they do, these numbers were measuring the connector.
-    ph_slope_solution:  -18.736416
-    ph_offset_solution:   5.452840
+
+    # -19.543529 slope and 7.308289 offset pretty decent approx 2 poitn calib, green pcb DFRobot probe
+
+    # --- 2026-09-02 3-point run: FAILS the 0.1 pH requirement -------------
+    #
+    # Run against 4.00 / 6.86 / 9.00. The pair below is what it produced; it
+    # does NOT meet spec and is here only so the next person sees the evidence.
+    #
+    #   pH 6.86   measured  +0.0262 V -> fitted 6.644   residual -0.216
+    #   pH 4.00   measured  +0.1743 V -> fitted 4.107   residual +0.107
+    #   pH 9.00   measured  -0.1178 V -> fitted 9.110   residual +0.110
+    #
+    # No slope/offset pair can rescue this, and that is arithmetic, not opinion.
+    # The middle buffer sits 0.325 pH off the line through the two end buffers.
+    # Least squares already minimises the squared residuals; the best a minimax
+    # line could do is split that deviation in half, so the LOWEST achievable
+    # worst residual on these three readings is 0.163 pH. Retuning the two
+    # numbers, by script or by hand, cannot get under 0.1. Only new readings can.
+    #
+    # The residual pattern names the culprit. +0.107 / -0.216 / +0.110 is the
+    # 1 : -2 : 1 signature documented above - one buffer wrong by d surfaces as
+    # 2d/3 at that buffer and -d/3 at the other two. 2 x 0.325 / 3 = 0.217.
+    # The middle buffer is the bad point; the two ends are not implicated.
+    #
+    # Everything else says the electrode is fine:
+    #   - the line through 4.00 and 9.00 alone is 58.42 mV/pH = 98.7% of
+    #     theoretical, asymmetry +4.2 mV. That is a healthy probe.
+    #   - segment slopes are 51.8 mV/pH across the low half and 67.3 across the
+    #     high half. A 30% split is not electrode curvature - no glass electrode
+    #     bends that hard over pH 4-9 - it is one displaced point.
+    #   - against the 2026-08-13 fit, pH 4 moved -4.9 mV and pH 9 moved -0.2 mV,
+    #     while pH 6.86 moved +11.1 mV. Only the middle point moved.
+    #
+    # +11 mV at the middle buffer means the solution read MORE ACIDIC than its
+    # label. Two things do that, and both are fixed by redoing the run:
+    #   1. a stale or cross-contaminated 6.86 buffer. An opened neutral buffer
+    #      absorbs CO2 and drifts acidic; so does carryover from the storage
+    #      solution or the pH 4 bottle on a short rinse. 6.86 was read FIRST in
+    #      this run, straight out of storage, which is the worst case for both.
+    #   2. reading before the electrode equilibrated - specifically a SLOW
+    #      settle. The run did pass the tightened 0.3 mV spread gate on every
+    #      buffer, which sounds like it rules this out, and for a fast probe it
+    #      would: a 0.3 mV spread over a 7.5 s window bounds the error left in
+    #      the reading at 1.4 mV if tau is 30 s. But that bound scales with tau,
+    #      and at tau = 300 s - a probe on its first dip out of dry storage -
+    #      the same gate still admits 12.2 mV. The miss was 11.1 mV, on the
+    #      buffer read first. The tau-independent check is the trend gate, and
+    #      TOL_DRIFT_V=0.0005 could not fire underneath a 0.3 mV spread gate
+    #      (the 1.385x cap explained in calibrate_ph.sh). It is 0.0001 now.
+    #
+    # ALSO CHECK THE TOP BOTTLE before refitting. The 9.00 point measured
+    # -0.1178 V; the 9.18 buffer measured -0.1176 V on this rig on 2026-08-13,
+    # 0.2 mV apart. If that bottle is really 9.18, refitting as 4.01/6.86/9.18
+    # takes the worst residual from 0.216 to 0.153 - better, still failing, and
+    # the middle point is still the outlier. So it is worth confirming, but it
+    # is not the whole fault. (The 4.01/7.00/10.01 reading of the same voltages
+    # fits to 0.035, but at 48.7 mV/pH = 82.3% of theoretical, which contradicts
+    # the 98.7% the end points give and the 97-98% this electrode has held all
+    # along. Ruled out: a mislabel that has to condemn a healthy probe to work
+    # is the wrong explanation.)
+    #
+    # To refit: fresh 6.86 (or 7.00) buffer from a sealed bottle, soak the probe
+    # for hours first per the note above, rinse and blot between dips, and run
+    # the buffers low to high so carryover pushes toward the buffer already read.
+    # RESID_MAX is 0.05 now, so the script will refuse to hand back a pair like
+    # this one instead of printing it and moving on.
+
+    ph_slope_solution:   -16.809322
+    ph_offset_solution:   7.023644
+  
