@@ -174,5 +174,5 @@
     # RESID_MAX is 0.05 now, so the script will refuse to hand back a pair like
     # this one instead of printing it and moving on.
 
-    ph_slope_solution:   -18.143116
-    ph_offset_solution:   7.075699
+    ph_slope_solution:  -17.745589
+    ph_offset_solution:   6.938751
